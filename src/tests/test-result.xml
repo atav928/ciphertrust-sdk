@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+    <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="0.345" timestamp="2023-06-04T13:44:46.746625" hostname="696d6163.tavnets.com">
+        <testcase classname="src.tests.test_utilities.TestUtilities" name="test_validators_false" time="0.006" />
+        <testcase classname="src.tests.test_utilities.TestUtilities" name="test_validators_true" time="0.001" />
+    </testsuite>
+</testsuites>
