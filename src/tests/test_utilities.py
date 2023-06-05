@@ -4,7 +4,7 @@ from typing import Any
 
 import unittest
 
-from ciphertrust_sdk import utils
+from ciphertrust import utils
 
 DOMAIN_TESTS_VALID: list[str] = [
     "some.url.domain.com",

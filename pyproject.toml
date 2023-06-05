@@ -24,11 +24,12 @@ dependencies = [
 
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"], content-type = "text/markdown"}
-version = {attr = "ciphertrust_sdk.__version__"}
+version = {attr = "ciphertrust.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src", "tests"]
-include = ["ciphertrust_sdk"]
+include = ["ciphertrust"]
+exclude = ["*.xml"]
 namespaces = true
 
 [tool.coverage.run]

@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import unittest
 
-from ciphertrust_sdk.models import AuthParams
+from ciphertrust.models import AuthParams
 
 SAMPLE: Dict[str,Any] = {
     "hostname": "something.com",
