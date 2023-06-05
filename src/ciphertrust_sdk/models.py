@@ -1,8 +1,9 @@
 """Models"""
 
+import copy
 from typing import Dict, List, Any, Optional, cast
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ciphertrust_sdk.static import DEFAULT_HEADERS, VALUES
 from ciphertrust_sdk.exceptions import CipherValueError
@@ -10,27 +11,42 @@ from ciphertrust_sdk.utils import validate_domain
 
 NONETYPE: None = cast(None, object())
 
+def default_field(obj: Dict[str,Any]) -> Any:
+    """Dataclass default Object field
+
+    :param obj: dictionary object
+    :type obj: Dict[str,Any]
+    :return: Dict
+    :rtype: Object
+    """
+    return field(default_factory=lambda: copy.copy(obj))
 
 @dataclass
-class AuthParams:  # pylint: disable=missing-class-docstring
+class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-attributes
+    """Authorization Parameters for CipherTrust Auth
+
+    :raises CipherValueError: Invalid parameter supplied
+    :return: _description_
+    :rtype: _type_
+    """
     hostname: str
     connnection: Optional[str] = NONETYPE
     cookies: Optional[bool] = NONETYPE
     domain: Optional[str] = NONETYPE
     grant_type: str = "password"
-    labels: List[str] = []
+    labels: List[str] = field(default_factory=lambda: [])
     password: Optional[str] = NONETYPE
     refresh_token: Optional[str] = NONETYPE
     refresh_token_lifetime: Optional[int] = NONETYPE
     refresh_token_revoke_unused_in: Optional[int] = NONETYPE
     renew_refresh_token: bool = False
-    username: Optional[str] = ""
+    username: Optional[str] = NONETYPE
     cert: Optional[Any] = NONETYPE
     verify: Any = True
     timeout: int = 60
-    headers: Optional[Dict[str,Any]] = DEFAULT_HEADERS
+    headers: Dict[str,Any] = default_field(DEFAULT_HEADERS)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Verify correct values for: 'grant_type', 'hostname', 'verify'"""
         if self.grant_type not in VALUES:
             raise CipherValueError(f"Invalid grant type: {self.grant_type=}")
@@ -47,3 +63,18 @@ class AuthParams:  # pylint: disable=missing-class-docstring
         :rtype: dict[str, Any]
         """
         return {key: value for key, value in self.__dict__.items() if value is not NONETYPE}
+
+
+if __name__ == "__main__":
+    sample: Dict[str,Any] = {
+        "hostname": "something.com",
+        "grant_type": "password",
+        "username": "some-password",
+        "headers": {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+    }
+    authparam: dict[str, Any] = AuthParams(**sample).asdict()
+    print(f"{authparam=}")
+    

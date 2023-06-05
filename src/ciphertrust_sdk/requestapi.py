@@ -35,6 +35,7 @@ def ctm_request(**kwargs: Dict[str, Any]) -> Dict[str, Any]:  # pylint: disable=
     """
     try:
         auth: Auth = kwargs.pop("auth")
+        jwt_token: str = auth.token["jwt"]
         method: str = kwargs.pop('method')  # type: ignore
         url: str = kwargs.pop('url')  # type: ignore
         timeout: int = kwargs.pop('timeout', 60)  # type: ignore
