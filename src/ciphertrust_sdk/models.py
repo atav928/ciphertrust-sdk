@@ -11,7 +11,8 @@ from ciphertrust_sdk.utils import validate_domain
 
 NONETYPE: None = cast(None, object())
 
-def default_field(obj: Dict[str,Any]) -> Any:
+
+def default_field(obj: Dict[str, Any]) -> Any:
     """Dataclass default Object field
 
     :param obj: dictionary object
@@ -21,7 +22,8 @@ def default_field(obj: Dict[str,Any]) -> Any:
     """
     return field(default_factory=lambda: copy.copy(obj))
 
-@dataclass
+
+@dataclass()
 class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-attributes
     """Authorization Parameters for CipherTrust Auth
 
@@ -44,7 +46,8 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
     cert: Optional[Any] = NONETYPE
     verify: Any = True
     timeout: int = 60
-    headers: Dict[str,Any] = default_field(DEFAULT_HEADERS)
+    headers: Dict[str, Any] = default_field(DEFAULT_HEADERS)
+    expiration: Optional[int] = NONETYPE
 
     def __post_init__(self) -> None:
         """Verify correct values for: 'grant_type', 'hostname', 'verify'"""
@@ -56,6 +59,34 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
         if not validate_domain(self.hostname):
             raise CipherValueError(f"Invlalid hostname: {self.hostname}")
 
+    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-arguments
+        """Used to remove any unwatned arguments
+
+        :return: _description_
+        :rtype: _type_
+        """
+        try:
+            initializer = cls.__initializer
+        except AttributeError:
+            # Store the original init on the class in a different place
+            cls.__initializer = initializer = cls.__init__
+            # replace init with something harmless
+            cls.__init__ = lambda *a, **k: None
+
+        # code from adapted from Arne
+        added_args = {}
+        for name in list(kwargs.keys()):
+            if name not in cls.__annotations__:  # pylint: disable=no-member
+                added_args[name] = kwargs.pop(name)
+
+        ret = object.__new__(cls)
+        initializer(ret, **kwargs)
+        # ... and add the new ones by hand
+        for new_name, new_val in added_args.items():
+            setattr(ret, new_name, new_val)
+
+        return ret
+
     def asdict(self) -> dict[str, Any]:
         """Returns dataclass as dictionary.
 
@@ -66,15 +97,15 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
 
 
 if __name__ == "__main__":
-    sample: Dict[str,Any] = {
+    sample: Dict[str, Any] = {
         "hostname": "something.com",
         "grant_type": "password",
         "username": "some-password",
         "headers": {
             "Content-Type": "application/json",
             "Accept": "application/json"
-        }
+        },
+        "ext": "value"
     }
     authparam: dict[str, Any] = AuthParams(**sample).asdict()
     print(f"{authparam=}")
-    
