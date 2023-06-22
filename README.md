@@ -68,3 +68,33 @@ __Sample Output:__
     ]
 }
 ```
+
+## Version
+
+| Version | Build | Changes |
+| ------- | ----- | ------- |
+| **0.0.1** | **final** | Test Relese; basic functionality |
+| **1.0.1** | **final** | Available Release with API and Auth functionality |
+| **1.0.2** | **a1** | Removed print |
+
+### Known Bugs/Futue Features
+
+__TODO:__
+
+* Create a metrics fucntion to return
+* Delete all private aand passwords being printed
+* Add logging or streaming or none
+* Add own metrics
+  * Generic metrics wrapper
+  * Logging metrics wrapper
+* Create an average, mean, total time depending on calls being made for when you want to do a full list of keys
+* Missing delete https action
+
+#### Release Notes
+
+#### v1.0.1
+
+Initial usable release
+
+* Allows ability to run get functions in a wrapper.
+* Supply all changes and updates with the standard get request using the api.get() call.

@@ -108,4 +108,4 @@ if __name__ == "__main__":
         "ext": "value"
     }
     authparam: dict[str, Any] = AuthParams(**sample).asdict()
-    print(f"{authparam=}")
+    # print(f"{authparam=}")

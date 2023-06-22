@@ -194,7 +194,7 @@ def default_payload(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]
-    print(f"Checking domain validation against list: {', '.join(valididate_list)}")
+    # print(f"Checking domain validation against list: {', '.join(valididate_list)}")
     for _ in valididate_list:
         is_valid = validate_domain(_)
-        print(f"{_} is {str(is_valid)}")
+        # print(f"{_} is {str(is_valid)}")

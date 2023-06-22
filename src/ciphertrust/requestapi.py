@@ -6,14 +6,14 @@ import orjson
 import requests
 from requests import HTTPError, Response
 
-from ciphertrust.auth import Auth, refresh_token
+from ciphertrust.auth import (Auth, refresh_token)
 from ciphertrust.exceptions import (CipherAPIError, CipherMissingParam)
 from ciphertrust.static import DEFAULT_HEADERS, ENCODE
 from ciphertrust.utils import reformat_exception
 
 
 @refresh_token
-def ctm_request(auth: Auth, **kwargs: Dict[str, Any]) -> Dict[str, Any]:  # pylint: disable=too-many-locals
+def ctm_request(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable=too-many-locals
     """_summary_
 
     Args:
@@ -64,7 +64,7 @@ def ctm_request(auth: Auth, **kwargs: Dict[str, Any]) -> Dict[str, Any]:  # pyli
     #else:
     # Sample test
     # TODO: Replace with logger
-    print(f"status={response.status_code}|response={response.json()}")
+    # print(f"status={response.status_code}|response={response.json()}")
     json_response = response.json()
     return json_response
 

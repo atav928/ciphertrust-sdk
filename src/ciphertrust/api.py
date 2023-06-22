@@ -13,16 +13,16 @@ from ciphertrust.static import ENCODE
 class API:
     """CipherTrust Manager API"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         self.auth = Auth(**kwargs)
 
         # Bind API method classes to this object
         subclasses = self._subclass_container()
         self.get = subclasses['get']()
 
-    def _subclass_container(self):
+    def _subclass_container(self) -> dict[str,Any]:
         _parent_class = self
-        return_object = {}
+        return_object: dict[str,Any] = {}
 
         class GetWrapper(Get):
             def __init__(self):
@@ -35,7 +35,7 @@ class API:
         return_object["post"] = PostWrapper
         return return_object
 
-    def convert_to_string(self, query: dict) -> str:
+    def convert_to_string(self, query: dict[str,Any]) -> str:
         """convert json to string
 
         :param query: _description_
@@ -55,7 +55,7 @@ class Get:
     _parent_class = None
     method = "GET"
 
-    def call(self, url_path: str, **kwargs) -> dict[str, Any]:
+    def call(self, url_path: str, **kwargs: Any) -> dict[str, Any]:
         """Generic Call Method
 
         :param url_path: _description_
@@ -63,15 +63,15 @@ class Get:
         :return: _description_
         :rtype: dict[str, Any]
         """
-        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path)
-        params: dict = kwargs.pop("params", {})
-        response: dict[str, Any] = ctm_request(auth=self._parent_class.auth,
+        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path) # type: ignore
+        params: dict[str,Any] = kwargs.pop("params", {})
+        response: dict[str,Any] = ctm_request(auth=self._parent_class.auth, # type: ignore
                                                url=url,
                                                method=self.method,
                                                params=params,
                                                timeout=self._parent_class.auth.timeout,
                                                verify=self._parent_class.auth.verify)
-        print(f"{response=}")
+        # print(f"{response=}")
         return response
 
 
@@ -84,24 +84,24 @@ class Post:
     _parent_class = None
     method: str = "POST"
 
-    def call(self, url_path: str, **kwargs) -> Dict[str, Any]:
+    def call(self, url_path: str, **kwargs: Any) -> Dict[str, Any]:
         """POST call for CipherTrust Manager
 
         :param url_path: _description_
         :type url_path: str
         """
-        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path)
-        params: dict = kwargs.pop("params", {})
-        data: str = self._parent_class.convert_to_string(
+        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path) # type: ignore
+        params: dict[str,Any] = kwargs.pop("params", {})
+        data: str = self._parent_class.convert_to_string( # type: ignore
             query=kwargs.pop("query")) if kwargs.get("query") else ""
-        response: dict[str, Any] = ctm_request(auth=self._parent_class.auth,
+        response: dict[str, Any] = ctm_request(auth=self._parent_class.auth, # type: ignore
                                                method=self.method,
                                                url=url,
                                                params=params,
                                                data=data,
                                                timeout=self._parent_class.auth.timeout,
                                                verify=self._parent_class.auth.verify)
-        print(f"{response=}")
+        # print(f"{response=}")
         return response
 
 
@@ -110,7 +110,7 @@ class Delete:
     _parent_class = None
     method: str = "DELETE"
 
-    def call(self, url_path: str, **kwargs) -> dict[str, Any]:
+    def call(self, url_path: str, **kwargs: Any) -> dict[str, Any]:
         """DELETE call for CipherTrust Manager
 
         :param url_path: _description_
@@ -124,7 +124,7 @@ class Delete:
                                                method=self.method,
                                                timeout=self._parent_class.auth.timeout,
                                                verify=self._parent_class.auth.verify)
-        print(f"{response=}")
+        # print(f"{response=}")
         return response
 
 
@@ -132,7 +132,7 @@ class Patch:
     _parent_class = None
     method: str = "PATCH"
 
-    def call(self, url_path, **kwargs) -> Dict[str, Any]:
+    def call(self, url_path: str, **kwargs: Any) -> Dict[str, Any]:
         """CipherTrust API Patch calls
 
         :param url_path: _description_
@@ -151,5 +151,5 @@ class Patch:
                                                data=data,
                                                timeout=self._parent_class.auth.timeout,
                                                verify=self._parent_class.auth.verify)
-        print(f"{response=}")
+        # print(f"{response=}")
         return response

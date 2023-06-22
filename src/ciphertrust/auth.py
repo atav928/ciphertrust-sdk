@@ -44,7 +44,7 @@ class Auth:
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         authparams: Dict[str, Any] = AuthParams(**kwargs).asdict()  # type: ignore
-        print(f"{authparams=}")
+        # print(f"{authparams=}")
         try:
             self.hostname: str = authparams.pop("hostname")
             self.timeout: int = authparams.pop("timeout")
@@ -56,7 +56,7 @@ class Auth:
             raise CipherValueError(f"Invalid value: {error}")
         self.payload: Dict[str, Any] = self._create_payload(authparams)
         self.url: str = config.AUTH.format(self.hostname)
-        print(f"{self.url}")
+        # print(f"{self.url}")
         self.gen_token()
 
     @property
@@ -70,9 +70,9 @@ class Auth:
         self.__renew_refresh_token = value
 
     def _create_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        print(f"{payload=}")
+        # print(f"{payload=}")
         response: Dict[str, Any] = default_payload(**payload)
-        print(f"createdpayload={response}")
+        # print(f"createdpayload={response}")
         return response
 
     def _jwt_decode(self, jwt_token: str) -> Dict[str, Any]:
@@ -88,10 +88,9 @@ class Auth:
         :rtype: Dict[str,Any]
         """
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
-        print(
-            f"method={self.method}|url={self.url}|data={data}|timeout={self.timeout}|verify={self.verify}|headers={self.headers}")
+        # print(f"method={self.method}|url={self.url}|data={data}|timeout={self.timeout}|verify={self.verify}|headers={self.headers}")
         response: Response = self._request(data=data)
-        print(f"response={response.json()}|code={response.status_code}")
+        # print(f"response={response.json()}|code={response.status_code}")
         self.api_raise_error(response)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
@@ -99,14 +98,14 @@ class Auth:
             raise CipherAPIError("No token in response")
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
-        print(f"{response_json=}")
+        # print(f"{response_json=}")
         self._update_token_info(response_json=response_json)
 
     def gen_refresh_token(self) -> None:
         payload: Dict[str, Any] = self._create_payload(self.refresh_authparams.asdict())
         data: str = orjson.dumps(payload).decode(ENCODE)  # pylint: disable=no-member
         response: Response = self._request(data=data)
-        print(f"response_code{response.status_code}|response={response.json()}")
+        # print(f"response_code{response.status_code}|response={response.json()}")
         self.api_raise_error(response=response)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
