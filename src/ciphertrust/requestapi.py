@@ -48,7 +48,7 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable
         data: str = orjson.dumps(data).decode(ENCODE)  # pylint: disable=no-member
     # Add auth to header
     headers["Authorization"] = f"Bearer {auth.token}"
-    response = requests.request(method=method,
+    response: Response = requests.request(method=method,
                                 url=url,
                                 headers=headers,
                                 data=data,
@@ -65,8 +65,41 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable
     # Sample test
     # TODO: Replace with logger
     # print(f"status={response.status_code}|response={response.json()}")
-    json_response = response.json()
-    return json_response
+    json_response = {
+        "exec_time": response.elapsed.total_seconds(),
+        "headers": response.headers
+    }
+    return {**json_response, **response.json()}
+
+# TODO: Cannot do as we are talking about hundreds of calls due to the millions of certs stored.
+def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str,Any]:
+    skip: int = 0
+    limit: int = 10000
+    total: int = 0
+    exec_time: float = 0.0
+    resources: list[dict[str,Any]] = []
+    kwargs["params"] = {
+        "skip": skip,
+        "limit": limit
+    }
+    iterations: int = 0
+    response: Dict[str,Any] = {}
+    while (len(resources) <= total or iterations == 0):
+        response = ctm_request(auth=auth,
+                               **kwargs)
+        total = response["total"]
+        exec_time = exec_time + response["exec_time"]
+        if response["resources"]:
+            resources = resources + response["resources"]
+        if not response["resources"]:
+            break
+        kwargs["params"] = {**kwargs["params"], **{"skip": limit}}
+        iterations += 1
+        print(f"{iterations=}|{exec_time=}|{total=}|resources={len(resources)}")
+    response["exec_time"] = exec_time
+    response["resources"] = resources
+    response["iterations"] = iterations
+    return response
 
 
 def api_raise_error(response: Response) -> None:

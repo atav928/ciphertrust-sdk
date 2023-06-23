@@ -6,7 +6,7 @@ import orjson
 
 from ciphertrust import config
 from ciphertrust.auth import Auth
-from ciphertrust.requestapi import ctm_request
+from ciphertrust.requestapi import ctm_request, ctm_request_list_all
 from ciphertrust.static import ENCODE
 
 
@@ -65,12 +65,23 @@ class Get:
         """
         url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path) # type: ignore
         params: dict[str,Any] = kwargs.pop("params", {})
-        response: dict[str,Any] = ctm_request(auth=self._parent_class.auth, # type: ignore
-                                               url=url,
-                                               method=self.method,
-                                               params=params,
-                                               timeout=self._parent_class.auth.timeout,
-                                               verify=self._parent_class.auth.verify)
+        calls = {
+            "standard": ctm_request,
+            "list_all": ctm_request_list_all
+        }
+        get_all = "list_all" if kwargs.get("get_all", False) else "standard"
+        response: dict[str,Any] = calls[get_all](auth=self._parent_class.auth, # type: ignore
+                                                 url=url,
+                                                 method=self.method, # type: ignore
+                                                 params=params,
+                                                 timeout=self._parent_class.auth.timeout, # type: ignore
+                                                 verify=self._parent_class.auth.verify) # type: ignore
+        # response: dict[str,Any] = ctm_request(auth=self._parent_class.auth, # type: ignore
+        #                                        url=url,
+        #                                        method=self.method,
+        #                                        params=params,
+        #                                        timeout=self._parent_class.auth.timeout,
+        #                                        verify=self._parent_class.auth.verify)
         # print(f"{response=}")
         return response
 
