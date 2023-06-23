@@ -17,22 +17,35 @@ class API:
         self.auth = Auth(**kwargs)
 
         # Bind API method classes to this object
-        subclasses = self._subclass_container()
-        self.get = subclasses['get']()
+        subclasses: dict[str, Any] = self._subclass_container()
+        self.get = subclasses["get"]()
+        self.post = subclasses["post"]()
+        self.patch = subclasses["patch"]()
+        self.delete = subclasses["delete"]()
 
     def _subclass_container(self) -> dict[str,Any]:
-        _parent_class = self
+        _parent_class: Self = self
         return_object: dict[str,Any] = {}
 
         class GetWrapper(Get):
-            def __init__(self):
+            def __init__(self) -> None:
                 self._parent_class = _parent_class
         return_object["get"] = GetWrapper
 
         class PostWrapper(Post):
-            def __init__(self):
+            def __init__(self) -> None:
                 self._parent_class = _parent_class
         return_object["post"] = PostWrapper
+
+        class PatchWrapper(Patch):
+            def __init__(self) -> None:
+                self._parent_class = _parent_class
+        return_object["patch"] = PatchWrapper
+
+        class DeleteWrapper(Delete):
+            def __init__(self) -> None:
+                self._parent_class = _parent_class
+        return_object["delete"] = DeleteWrapper
         return return_object
 
     def convert_to_string(self, query: dict[str,Any]) -> str:
@@ -63,7 +76,8 @@ class Get:
         :return: _description_
         :rtype: dict[str, Any]
         """
-        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path) # type: ignore
+        url: str = config.API_URL.format(self._parent_class.auth.hostname, # type: ignore
+                                         url_path)
         params: dict[str,Any] = kwargs.pop("params", {})
         calls = {
             "standard": ctm_request,
@@ -112,7 +126,6 @@ class Post:
                                                data=data,
                                                timeout=self._parent_class.auth.timeout,
                                                verify=self._parent_class.auth.verify)
-        # print(f"{response=}")
         return response
 
 

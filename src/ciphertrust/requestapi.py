@@ -1,8 +1,13 @@
 """Request API"""
 
-from typing import Any, Dict
-import orjson
+from typing import Any, Dict, List
+import time
+import statistics
+import asyncio
+import copy
 
+import orjson
+import httpx
 import requests
 from requests import HTTPError, Response
 
@@ -71,34 +76,97 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable
     }
     return {**json_response, **response.json()}
 
-# TODO: Cannot do as we are talking about hundreds of calls due to the millions of certs stored.
-def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str,Any]:
-    skip: int = 0
-    limit: int = 10000
-    total: int = 0
-    exec_time: float = 0.0
-    resources: list[dict[str,Any]] = []
-    kwargs["params"] = {
-        "skip": skip,
-        "limit": limit
+@refresh_token
+async def ctm_request_async(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable=too-many-locals
+    """_summary_
+
+    Args:
+        token (Auth): Auth class that is used to refresh bearer token upon expiration.
+        url_type (str): specify the api call
+        method (str): specifies the type of HTTPS method used
+        params (dict, optional): specifies parameters passed to request
+        data (str, optional): specifies the data being sent
+        verify (str|bool, optional): sets request to verify with a custom
+         cert bypass verification or verify with standard library. Defaults to True
+        timeout (int, optional): sets API call timeout. Defaults to 60
+        delete_object (str, required|optional): Required if method is DELETE
+        put_object (str, required|optional): Required if method is PUT
+        limit (int, Optional): The maximum number of results
+        offset (int, Optional): The offset of the result entry
+        get_object (str, Optional): Used if method is "GET", but additional path parameters required
+    Returns:
+        _type_: _description_
+    """
+    try:
+        client: httpx.AsyncClient = kwargs["client"]
+        url: str = kwargs.pop('url')  # type: ignore
+        params: Dict[str, Any] = kwargs['params']
+        headers: Dict[str, Any] = kwargs.pop("headers", DEFAULT_HEADERS)
+    except KeyError as err:
+        error: str = reformat_exception(err)
+        raise CipherMissingParam(error)  # pylint: disable=raise-missing-from
+    # Add auth to header
+    headers["Authorization"] = f"Bearer {auth.token}"
+    response: httpx.Response = await client.get(url=url,
+                                                params=params)
+    json_response = {
+        "exec_time": response.elapsed.total_seconds(),
+        "headers": response.headers
     }
-    iterations: int = 0
-    response: Dict[str,Any] = {}
-    while (len(resources) <= total or iterations == 0):
-        response = ctm_request(auth=auth,
-                               **kwargs)
-        total = response["total"]
-        exec_time = exec_time + response["exec_time"]
-        if response["resources"]:
-            resources = resources + response["resources"]
-        if not response["resources"]:
-            break
-        kwargs["params"] = {**kwargs["params"], **{"skip": limit}}
-        iterations += 1
-        print(f"{iterations=}|{exec_time=}|{total=}|resources={len(resources)}")
-    response["exec_time"] = exec_time
-    response["resources"] = resources
-    response["iterations"] = iterations
+    return {**json_response, **response.json()}
+
+
+# TODO: Cannot do as we are talking about hundreds of calls due to the millions of certs stored.
+async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str,Any]:
+    """_summary_
+
+    Args:
+        auth (Auth): _description_
+
+    Returns:
+        Dict[str,Any]: _description_
+    """
+    # inital response
+    kwargs["params"] = {"limit": 1}
+    # refresh for 5 min timer
+    auth.gen_refresh_token()
+    start_time: float = time.time()
+    resp: dict[str,Any] = ctm_request(auth=auth, **kwargs)
+    limit: int = 2000
+    total: int = resp["total"]
+    # set the total amount of iterations required to get full response
+    # works when limit is already reached
+    iterations: int = int(total/limit) if (total%limit == 0) else (total//limit + 1)
+    response: Dict[str,Any] = {
+        "exec_time": 0.0,
+        "exec_time_start": start_time,
+        "exec_time_end": 0.0,
+        "exec_time_min": 0.0,
+        "exec_time_max": 0.0,
+        "exec_time_stdev": 0.0,
+        "iterations": copy.deepcopy(iterations),
+        "resources": []
+    }
+    async with httpx.AsyncClient(timeout=360.0,verify=kwargs.get("verify", True)) as client:
+        tasks: list[Any] = []
+        for number in range(iterations):
+            # Set the parameters and increase per run
+            kwargs["params"] = {
+                "limit": limit,
+                "skip": (number*2000+1) if (number != 0) else 0
+            }
+            kwargs["client"] = client
+            tasks.append(asyncio.ensure_future(ctm_request_async(auth=auth,**kwargs)))
+        full_listed_resp: List[Dict[str,Any]] = await asyncio.gather(*tasks)
+    end_time: float = time.time()
+    elapsed_times: list[float] = [value["exec_time"] for value in full_listed_resp]
+    # iterations: int = 0
+    response["exec_time"] = end_time - start_time
+    response["exec_time_end"] = end_time
+    response["exec_time_min"] = min(elapsed_times)
+    response["exec_time_max"] = max(elapsed_times)
+    response["exec_time_stdev"] = statistics.stdev(elapsed_times)
+    response["resources"].extend(values["resources"] for values in full_listed_resp)
     return response
 
 
