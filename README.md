@@ -77,6 +77,7 @@ __Sample Output:__
 | **1.0.1** | **final** | Available Release with API and Auth functionality |
 | **1.0.2** | **a1** | Removed print |
 | **1.0.2** | **a2** | Added metrics in calls and additional awaits to call on mutliple calls |
+| **1.0.2** | **final** | See notes below |
 
 ### Known Bugs/Futue Features
 
