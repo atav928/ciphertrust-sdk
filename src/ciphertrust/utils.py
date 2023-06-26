@@ -7,6 +7,20 @@ import validators
 
 from ciphertrust.exceptions import CipherValueError
 
+def concat_resources(dict1, dict2) -> list[dict[str,Any]]:
+    """Use reduce to generate a list of resources
+
+    :param dict1: _description_
+    :type dict1: _type_
+    :param dict2: _description_
+    :type dict2: _type_
+    :return: _description_
+    :rtype: list[dict[str,Any]]
+    """
+    for key in dict2:
+        if key in dict1 and key == "resources":
+            dict1[key] += dict2[key]
+    return dict1
 
 def reformat_exception(error: Exception) -> str:
     """Reformates Exception to print out as a string pass for logging

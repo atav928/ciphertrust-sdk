@@ -5,6 +5,7 @@ import time
 import statistics
 import asyncio
 import copy
+from functools import reduce
 
 import orjson
 import httpx
@@ -13,8 +14,9 @@ from requests import HTTPError, Response
 
 from ciphertrust.auth import (Auth, refresh_token)
 from ciphertrust.exceptions import (CipherAPIError, CipherMissingParam)
-from ciphertrust.static import DEFAULT_HEADERS, ENCODE
-from ciphertrust.utils import reformat_exception
+from ciphertrust.static import (DEFAULT_HEADERS, ENCODE,
+                                DEFAULT_LIMITS_OVERRIDE, DEFAULT_TIMEOUT_CONFIG_OVERRIDE)
+from ciphertrust.utils import (reformat_exception, concat_resources)
 
 
 @refresh_token
@@ -54,19 +56,15 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable
     # Add auth to header
     headers["Authorization"] = f"Bearer {auth.token}"
     response: Response = requests.request(method=method,
-                                url=url,
-                                headers=headers,
-                                data=data,
-                                params=params,
-                                verify=verify,
-                                timeout=timeout)
+                                          url=url,
+                                          headers=headers,
+                                          data=data,
+                                          params=params,
+                                          verify=verify,
+                                          timeout=timeout)
     # cipher_logger.debug("Response Code=%s|Full Response=%s",
     #                     str(response.status_code), response.text.rstrip())
     api_raise_error(response=response)
-    #if response.status_code == 204:
-    #    json_response = {"message": "Data Created",
-    #                     "code": response.status_code}
-    #else:
     # Sample test
     # TODO: Replace with logger
     # print(f"status={response.status_code}|response={response.json()}")
@@ -75,6 +73,7 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable
         "headers": response.headers
     }
     return {**json_response, **response.json()}
+
 
 @refresh_token
 async def ctm_request_async(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable=too-many-locals
@@ -106,18 +105,22 @@ async def ctm_request_async(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pyl
         error: str = reformat_exception(err)
         raise CipherMissingParam(error)  # pylint: disable=raise-missing-from
     # Add auth to header
+    # auth = refresh_token(auth=auth)
     headers["Authorization"] = f"Bearer {auth.token}"
     response: httpx.Response = await client.get(url=url,
-                                                params=params)
+                                                params=params,
+                                                headers=headers)
     json_response = {
         "exec_time": response.elapsed.total_seconds(),
-        "headers": response.headers
+        "headers": response.headers,
+        "exec_time_end": time.time()
     }
     return {**json_response, **response.json()}
 
 
 # TODO: Cannot do as we are talking about hundreds of calls due to the millions of certs stored.
-async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str,Any]:
+@refresh_token
+async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
     """_summary_
 
     Args:
@@ -129,45 +132,92 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str,Any]:
     # inital response
     kwargs["params"] = {"limit": 1}
     # refresh for 5 min timer
-    auth.gen_refresh_token()
+    # auth.gen_refresh_token()
+    # print(f"token_expires={auth.expiration}")
     start_time: float = time.time()
-    resp: dict[str,Any] = ctm_request(auth=auth, **kwargs)
-    limit: int = 2000
+    resp: dict[str, Any] = ctm_request(auth=auth, **kwargs)
+    # print(f"{resp=}")
+    limit: int = 1000
     total: int = resp["total"]
     # set the total amount of iterations required to get full response
     # works when limit is already reached
-    iterations: int = int(total/limit) if (total%limit == 0) else (total//limit + 1)
-    response: Dict[str,Any] = {
-        "exec_time": 0.0,
+    # TODO: This will send full iterations, but too many calls.
+    # Reduce the amount of calls to prevent excessive calls.
+    iterations: int = int(total/limit) if (total % limit == 0) else (total//limit + 1)
+    # iterations = 10
+    response: Dict[str, Any] = {
+        "total": total,
         "exec_time_start": start_time,
-        "exec_time_end": 0.0,
-        "exec_time_min": 0.0,
-        "exec_time_max": 0.0,
-        "exec_time_stdev": 0.0,
         "iterations": copy.deepcopy(iterations),
-        "resources": []
     }
-    async with httpx.AsyncClient(timeout=360.0,verify=kwargs.get("verify", True)) as client:
+    full_listed_resp = []
+    while iterations > 0:
+        send_iterations = 10 if iterations <= 10 else iterations
+        tmp_listed_resp = await split_up_req(auth=auth,
+                                             iterations=send_iterations,
+                                             limit=limit,
+                                             **kwargs)
+        full_listed_resp = full_listed_resp + tmp_listed_resp
+        iterations -= 10
+        print(f"One loop iteration completed new_iterations={iterations}")
+    response = {**response, **build_responsde(full_listed_resp=full_listed_resp)}
+    response["exec_time"] = response["exec_time_end"] - start_time
+    return response
+
+
+@refresh_token
+async def split_up_req(auth: Auth, iterations: int, limit: int, **kwargs) -> List[Dict[str, Any]]:
+    """Splitting up requests due to too many being sent and cannot handle.
+      Trying to adjust with timeout, but still causes errors on return.
+
+    :param auth: _description_
+    :type auth: Auth
+    :param iterations: _description_
+    :type iterations: int
+    :param limit: _description_
+    :type limit: int
+    :return: _description_
+    :rtype: List[Dict[str,Any]]
+    """
+    async with httpx.AsyncClient(limits=DEFAULT_LIMITS_OVERRIDE,
+                                 timeout=DEFAULT_TIMEOUT_CONFIG_OVERRIDE,
+                                 verify=kwargs.get("verify", True)) as client:
         tasks: list[Any] = []
         for number in range(iterations):
             # Set the parameters and increase per run
             kwargs["params"] = {
                 "limit": limit,
-                "skip": (number*2000+1) if (number != 0) else 0
+                "skip": (number*limit+1) if (number != 0) else 0
             }
             kwargs["client"] = client
-            tasks.append(asyncio.ensure_future(ctm_request_async(auth=auth,**kwargs)))
-        full_listed_resp: List[Dict[str,Any]] = await asyncio.gather(*tasks)
+            print(f"{number=}|{kwargs=}")
+            tasks.append(asyncio.ensure_future(ctm_request_async(auth=auth, **kwargs)))
+        full_listed_resp: List[Dict[str, Any]] = await asyncio.gather(*tasks)
+    return full_listed_resp
+    # print(f"{full_listed_resp=}")
+
+
+def build_responsde(full_listed_resp: list[dict[str, Any]]) -> dict[str, Any]:
+    response: Dict[str, Any] = {
+        "exec_time_end": 0.0,
+        "exec_time_min": 0.0,
+        "exec_time_max": 0.0,
+        "exec_time_stdev": 0.0,
+        "resources": []
+    }
     end_time: float = time.time()
     elapsed_times: list[float] = [value["exec_time"] for value in full_listed_resp]
-    # iterations: int = 0
-    response["exec_time"] = end_time - start_time
+    response["elapsed_times"] = elapsed_times
     response["exec_time_end"] = end_time
     response["exec_time_min"] = min(elapsed_times)
     response["exec_time_max"] = max(elapsed_times)
     response["exec_time_stdev"] = statistics.stdev(elapsed_times)
-    response["resources"].extend(values["resources"] for values in full_listed_resp)
+    response["resources"] = reduce(concat_resources, full_listed_resp)["resources"]
     return response
+
+
+def asyn_get_all(auth: Auth, **kwargs: Any) -> dict[str, Any]:
+    return asyncio.run(ctm_request_list_all(auth=auth, **kwargs))
 
 
 def api_raise_error(response: Response) -> None:
@@ -185,11 +235,3 @@ def api_raise_error(response: Response) -> None:
     except HTTPError as err:
         error: str = reformat_exception(err)
         raise CipherAPIError(f"{error=}|response={response.text}")
-    # if response.status_code == 403:
-        # message = response.json().get("message", "Permission Denied")
-        # cipher_logger.error("CipherPermission: %s", message)
-        # raise CipherPermission(message)
-    # if not (response.status_code >= 200 and response.status_code < 299):
-        # cipher_logger.error("Status Code: %s| Error: %s", str(
-        #    response.status_code), response.json())
-        # raise CipherAPIError(response.json())
