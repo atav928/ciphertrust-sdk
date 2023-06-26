@@ -3,6 +3,7 @@
 
 from typing import Dict, Any
 import time
+import statistics
 # from urllib.parse import urlparse
 
 import jwt
@@ -38,13 +39,17 @@ class Auth:
     token_type: str
     refresh_authparams: AuthParams
     auth_response: Dict[str, Any] = {}
-    refresh_token_expires_in: int = 0
-    duration: int = 300
+    exec_time_elapsed: list[float] = []
+    exec_time_stdev: float = 0.0
+    exec_time_min: float = 0.0
+    exec_time_max: float = 0.0
+    exec_time: float = 0.0
+    duration: int = 240
     refresh_params: Dict[str, Any] = {}
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         authparams: Dict[str, Any] = AuthParams(**kwargs).asdict()  # type: ignore
-        print(f"{authparams=}")
+        # print(f"{authparams=}")
         try:
             self.hostname: str = authparams.pop("hostname")
             self.timeout: int = authparams.pop("timeout")
@@ -56,7 +61,7 @@ class Auth:
             raise CipherValueError(f"Invalid value: {error}")
         self.payload: Dict[str, Any] = self._create_payload(authparams)
         self.url: str = config.AUTH.format(self.hostname)
-        print(f"{self.url}")
+        # print(f"{self.url}")
         self.gen_token()
 
     @property
@@ -70,9 +75,9 @@ class Auth:
         self.__renew_refresh_token = value
 
     def _create_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        print(f"{payload=}")
+        # print(f"{payload=}")
         response: Dict[str, Any] = default_payload(**payload)
-        print(f"createdpayload={response}")
+        # print(f"createdpayload={response}")
         return response
 
     def _jwt_decode(self, jwt_token: str) -> Dict[str, Any]:
@@ -88,33 +93,49 @@ class Auth:
         :rtype: Dict[str,Any]
         """
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
-        print(
-            f"method={self.method}|url={self.url}|data={data}|timeout={self.timeout}|verify={self.verify}|headers={self.headers}")
+        # print(f"method={self.method}|url={self.url}|data={data}|timeout={self.timeout}|verify={self.verify}|headers={self.headers}")
         response: Response = self._request(data=data)
-        print(f"response={response.json()}|code={response.status_code}")
+        # print(f"response={response.json()}|code={response.status_code}")
         self.api_raise_error(response)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
             raise CipherAPIError("No token in response")
+        self._update_exec_time(response.elapsed.total_seconds())
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
-        print(f"{response_json=}")
+        # print(f"{response_json=}")
         self._update_token_info(response_json=response_json)
 
     def gen_refresh_token(self) -> None:
         payload: Dict[str, Any] = self._create_payload(self.refresh_authparams.asdict())
         data: str = orjson.dumps(payload).decode(ENCODE)  # pylint: disable=no-member
         response: Response = self._request(data=data)
-        print(f"response_code{response.status_code}|response={response.json()}")
+        # print(f"response_code{response.status_code}|response={response.json()}")
         self.api_raise_error(response=response)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
             raise CipherAPIError("No token in response")
+        self._update_exec_time(response.elapsed.total_seconds())
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
         self._update_token_info(response_json=response_json)
+
+    def _update_exec_time(self, exec_time: float) -> None:
+        """Updates Execution Times to track 
+
+        :param exec_time: _description_
+        :type exec_time: float
+        """
+        self.exec_time = exec_time
+        self.exec_time_elapsed.append(exec_time)
+        self.exec_time_min = min(self.exec_time_elapsed)
+        self.exec_time_max = max(self.exec_time_elapsed)
+        self.exec_time_stdev = 0.0 if len(
+            self.exec_time_elapsed) <= 1 else statistics.stdev(
+            self.exec_time_elapsed)
+    
 
     def _update_token_info(self, response_json: Dict[str, Any]):
         self.expiration = response_json["jwt_decode"]["exp"]
@@ -152,9 +173,6 @@ class Auth:
         :raises CipherAuthError: Authorization Error
         :raises CipherAPIError: Generic API Error
         """
-        # if response.status_code == 403:
-        #    message = response.json().get("message", "Permission Denied")
-        #    raise CipherAuthError(message)
         try:
             response.raise_for_status()
         except HTTPError as err:
@@ -170,6 +188,8 @@ def refresh_token(decorated):  # type: ignore
         try:
             if time.time() >= auth.expiration:
                 auth.gen_refresh_token()
+                # print("Generatinga new token|auth.expiration=",
+                #       f"{auth.expiration}|issued={auth.issued_at}")
         except KeyError:
             raise CipherAuthError(f"Invalid Authorization {auth}")
         return decorated(auth, **kwargs)

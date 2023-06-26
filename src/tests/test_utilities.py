@@ -29,12 +29,12 @@ class TestUtilities(unittest.TestCase):
         """
         for value in DOMAIN_TESTS_VALID:
             result: bool = utils.validate_domain(value)
-            print(f"{value} is {result}")
+            # print(f"{value} is {result}")
             self.assertTrue(result)
 
     def test_validators_false(self) -> None:
         """Validating Domain Lists that shoudl always be False"""
         for value in DOMAIN_TESTS_INVALID:
             result: bool = utils.validate_domain(value)
-            print(f"{value} is {result}")
+            # print(f"{value} is {result}")
             self.assertFalse(result)

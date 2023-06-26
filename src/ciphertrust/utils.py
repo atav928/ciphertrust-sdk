@@ -1,11 +1,26 @@
 """Utilities"""
 
+import time
 from typing import Dict, Any
 
 import validators
 
 from ciphertrust.exceptions import CipherValueError
 
+def concat_resources(dict1, dict2) -> list[dict[str,Any]]:
+    """Use reduce to generate a list of resources
+
+    :param dict1: _description_
+    :type dict1: _type_
+    :param dict2: _description_
+    :type dict2: _type_
+    :return: _description_
+    :rtype: list[dict[str,Any]]
+    """
+    for key in dict2:
+        if key in dict1 and key == "resources":
+            dict1[key] += dict2[key]
+    return dict1
 
 def reformat_exception(error: Exception) -> str:
     """Reformates Exception to print out as a string pass for logging
@@ -194,7 +209,7 @@ def default_payload(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]
-    print(f"Checking domain validation against list: {', '.join(valididate_list)}")
+    # print(f"Checking domain validation against list: {', '.join(valididate_list)}")
     for _ in valididate_list:
         is_valid = validate_domain(_)
-        print(f"{_} is {str(is_valid)}")
+        # print(f"{_} is {str(is_valid)}")
