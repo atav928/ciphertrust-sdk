@@ -1,13 +1,14 @@
 """Utilities"""
 
-import time
 from typing import Dict, Any
+from pathlib import Path
 
 import validators
 
 from ciphertrust.exceptions import CipherValueError
 
-def concat_resources(dict1, dict2) -> list[dict[str,Any]]:
+
+def concat_resources(dict1, dict2) -> list[dict[str, Any]]:  # type: ignore
     """Use reduce to generate a list of resources
 
     :param dict1: _description_
@@ -17,10 +18,11 @@ def concat_resources(dict1, dict2) -> list[dict[str,Any]]:
     :return: _description_
     :rtype: list[dict[str,Any]]
     """
-    for key in dict2:
+    for key in dict2:  # type: ignore
         if key in dict1 and key == "resources":
             dict1[key] += dict2[key]
-    return dict1
+    return dict1  # type: ignore
+
 
 def reformat_exception(error: Exception) -> str:
     """Reformates Exception to print out as a string pass for logging
@@ -52,7 +54,7 @@ def set_refresh_lifetime(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
     :return: _description_
     :rtype: Dict[str,Any]
     """
-    response = {}
+    response: Dict[str, Any] = {}
     if kwargs.get("refresh_token_lifetime"):
         response["refresh_token_lifetime"] = kwargs.get("refresh_token_lifetime")
     return response
@@ -64,7 +66,7 @@ def set_refresh_token_revoke_unused_in(**kwargs: Dict[str, Any]) -> Dict[str, An
     :return: _description_
     :rtype: Dict[str,Any]
     """
-    response = {}
+    response: Dict[str, Any] = {}
     if kwargs.get("refresh_token_revoke_unused_in"):
         response["refresh_token_revoke_unused_in"] = kwargs.get("refresh_token_revoke_unused_in")
     return response
@@ -76,7 +78,7 @@ def set_renew_refresh_token(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
     :return: _description_
     :rtype: Dict[str,Any]
     """
-    response = {}
+    response: Dict[str, Any] = {}
     response["renew_refresh_token"] = kwargs.get("renew_refresh_token", False)
     return response
 
@@ -117,7 +119,7 @@ def grant_password(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
         return response
     except KeyError as err:
         error: str = reformat_exception(err)
-        raise CipherValueError(f"Invalid value: {error}")
+        raise CipherValueError(f"Invalid value: {error}")  # pylint: disable=raise-missing-from
 
 
 def grant_refresh(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -194,6 +196,12 @@ grant_options: Dict[str, Any] = {
 
 
 def default_payload(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Set Default Payload
+
+    :raises CipherValueError: _description_
+    :return: _description_
+    :rtype: Dict[str, Any]
+    """
     try:
         response: Dict[str, Any] = {
             "grant_type": kwargs["grant_type"],
@@ -205,6 +213,17 @@ def default_payload(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
     except KeyError as err:
         error: str = reformat_exception(err)
         raise CipherValueError(f"Invalid value: {error}")
+
+
+def verify_path_exists(path_dir: str) -> bool:
+    """Checks if Path exists
+
+    :param path_dir: _description_
+    :type path_dir: str
+    :return: _description_
+    :rtype: bool
+    """
+    return Path(path_dir).exists()
 
 
 if __name__ == "__main__":

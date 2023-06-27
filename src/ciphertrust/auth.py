@@ -70,7 +70,7 @@ class Auth:
 
     @renew_refresh_token.setter
     def renew_refresh_token(self, value: bool):
-        if not isinstance(value, bool):
+        if not isinstance(value, bool):  # type: ignore
             raise CipherValueError(f"Invalid value for renew_refresh_token: {value}")
         self.__renew_refresh_token = value
 
@@ -135,7 +135,6 @@ class Auth:
         self.exec_time_stdev = 0.0 if len(
             self.exec_time_elapsed) <= 1 else statistics.stdev(
             self.exec_time_elapsed)
-    
 
     def _update_token_info(self, response_json: Dict[str, Any]):
         self.expiration = response_json["jwt_decode"]["exp"]

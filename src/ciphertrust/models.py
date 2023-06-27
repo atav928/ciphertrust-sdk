@@ -59,7 +59,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
         if not validate_domain(self.hostname):
             raise CipherValueError(f"Invlalid hostname: {self.hostname}")
 
-    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-arguments
+    def __new__(cls, *args: Any, **kwargs: Any):  # pylint: disable=unused-arguments,unknown-option-value
         """Used to remove any unwatned arguments
 
         :return: _description_

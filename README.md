@@ -78,6 +78,7 @@ __Sample Output:__
 | **1.0.2** | **a1** | Removed print |
 | **1.0.2** | **a2** | Added metrics in calls and additional awaits to call on mutliple calls |
 | **1.0.2** | **final** | See notes below |
+| **1.0.3** | **final** | See notes below |
 
 ### Known Bugs/Futue Features
 
@@ -91,8 +92,20 @@ __TODO:__
   * &#9744; Logging metrics wrapper
 * &#9745; Create an average, mean, total time depending on calls being made for when you want to do a full list of keys
 * &#9745; Missing delete https action
+* &#9745; Create a download method to handle downlaoding files
 
 #### Release Notes
+
+#### v1.0.3
+
+* Fixed bug with headers returning a requests.exceptions.JSONDecodeError due to the way headers are formated.
+* Added more timeing metrics for quanitfying calls.
+* Added ability to request a download when stream=True is passed in call.
+
+__TODO:__
+
+* Need to build additional async requests when calling multiple items.
+* Build out ability to send multiple requests and hold the type of requests to make it easier to use the SDK.
 
 #### v1.0.2
 
