@@ -35,7 +35,7 @@ def format_request(response: Response) -> dict[str, Any]:
     api_raise_error(response=response)
     json_response = {
         "exec_time": response.elapsed.total_seconds(),
-        "headers": json.loads(orjson.dumps(response.headers.__dict__["_store"]).decode('utf-8')),
+        "headers": json.loads(orjson.dumps(response.headers.__dict__["_store"]).decode('utf-8')), # pylint: disable=no-member
         "exec_time_end": datetime.datetime.utcnow().isoformat()
     }
     return json_response
@@ -59,10 +59,10 @@ def download_request(**kwargs: Any) -> dict[str, Any]:
     :rtype: Response
     """
     chunk_size = kwargs.pop("chunk_size", 128)
-    req: Response = requests.request(stream=True, **kwargs)  # pylint: disable=missing-timeout
     save_path = kwargs.pop("save_dir", os.path.expanduser('~'))
     if not verify_path_exists(path_dir=save_path):
         raise FileExistsError(f"{save_path} does not exist")
+    req: Response = requests.request(stream=True, **kwargs)  # pylint: disable=missing-timeout
     parsed_url: urllib.parse.ParseResult = urllib.parse.urlparse(kwargs["url"])
     save_filename = Path.joinpath(
         Path(save_path) /

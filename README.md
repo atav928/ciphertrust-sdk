@@ -80,6 +80,7 @@ __Sample Output:__
 | **1.0.2** | **final** | See notes below |
 | **1.0.3** | **final** | See notes below |
 | **1.0.4** | **final** | See notes below |
+| **1.0.5** | **final** | Fixed bug passing directory param in downloads call |
 
 ### Known Bugs/Futue Features
 
@@ -97,14 +98,18 @@ __TODO:__
 
 #### Release Notes
 
-#### v1.0.4
+#### v1.0.5
 
-* Updated standard download log file to include hostname in filename.
+* Bug fixed with passing "save_dir" into get call for downloading log files.
 
 __TODO:__
 
 * Need to build additional async requests when calling multiple items.
 * Build out ability to send multiple requests and hold the type of requests to make it easier to use the SDK.
+
+#### v1.0.4
+
+* Updated standard download log file to include hostname in filename.
 
 #### v1.0.3
 

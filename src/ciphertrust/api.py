@@ -91,7 +91,8 @@ class Get:
                                                  params=params,
                                                  timeout=self._parent_class.auth.timeout, # type: ignore
                                                  stream=stream,
-                                                 verify=self._parent_class.auth.verify) # type: ignore
+                                                 verify=self._parent_class.auth.verify,  # type: ignore
+                                                 save_dir=kwargs.pop("save_dir", ""))
         return response
 
 
