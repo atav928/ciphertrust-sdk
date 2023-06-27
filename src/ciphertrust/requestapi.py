@@ -10,6 +10,7 @@ import asyncio
 import copy
 from functools import reduce
 from pathlib import Path
+import urllib.parse
 
 import orjson
 import httpx
@@ -58,17 +59,17 @@ def download_request(**kwargs: Any) -> dict[str, Any]:
     :rtype: Response
     """
     chunk_size = kwargs.pop("chunk_size", 128)
-    req: Response = requests.request(stream=True, **kwargs)
+    req: Response = requests.request(stream=True, **kwargs)  # pylint: disable=missing-timeout
     save_path = kwargs.pop("save_dir", os.path.expanduser('~'))
     if not verify_path_exists(path_dir=save_path):
         raise FileExistsError(f"{save_path} does not exist")
-        sys.exit()
+    parsed_url: urllib.parse.ParseResult = urllib.parse.urlparse(kwargs["url"])
     save_filename = Path.joinpath(
         Path(save_path) /
-        f"ciphertrust_log_{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}.tar.gz")
-    with open(save_filename, 'wb') as fd:
+        f"{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}_ciphertrust_log_{parsed_url.hostname}.tar.gz")
+    with open(save_filename, 'wb') as fild:
         for chunk in req.iter_content(chunk_size=chunk_size):
-            fd.write(chunk)
+            fild.write(chunk)
     response = {"message": "downloaded request completed", "location": str(save_filename)}
     response = {**response, **format_request(req)}
     return response

@@ -90,13 +90,13 @@ def set_user_cert(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
     :return: _description_
     :rtype: Dict[str,Any]
     """
-    response = {}
+    response: Dict[str,Any] = {}
     try:
         # TODO: Confirm tuple value for (cert,key)
         response["cert"] = kwargs["cert"]
-        return response
     except KeyError:
         raise CipherValueError("Required missing Cert for User Cert Auth")
+    return response
 
 
 def grant_password(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -228,7 +228,5 @@ def verify_path_exists(path_dir: str) -> bool:
 
 if __name__ == "__main__":
     valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]
-    # print(f"Checking domain validation against list: {', '.join(valididate_list)}")
     for _ in valididate_list:
         is_valid = validate_domain(_)
-        # print(f"{_} is {str(is_valid)}")
