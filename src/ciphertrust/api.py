@@ -79,6 +79,7 @@ class Get:
         url: str = config.API_URL.format(self._parent_class.auth.hostname, # type: ignore
                                          url_path)
         params: dict[str,Any] = kwargs.pop("params", {})
+        stream: bool = kwargs.pop("stream", False)
         calls = {
             "standard": ctm_request,
             "list_all": asyn_get_all
@@ -89,6 +90,7 @@ class Get:
                                                  method=self.method, # type: ignore
                                                  params=params,
                                                  timeout=self._parent_class.auth.timeout, # type: ignore
+                                                 stream=stream,
                                                  verify=self._parent_class.auth.verify) # type: ignore
         return response
 
