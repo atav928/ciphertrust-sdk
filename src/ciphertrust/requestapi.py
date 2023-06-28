@@ -17,15 +17,16 @@ import httpx
 import requests
 from requests import HTTPError, Response
 
-from ciphertrust.auth import (Auth, refresh_token)
+from ciphertrust.auth import (Auth, refresh_token)  # type: ignore
 from ciphertrust.exceptions import (CipherAPIError, CipherMissingParam)
 from ciphertrust.static import (DEFAULT_HEADERS, ENCODE,
                                 DEFAULT_LIMITS_OVERRIDE, DEFAULT_TIMEOUT_CONFIG_OVERRIDE)
-from ciphertrust.utils import (reformat_exception, concat_resources, verify_path_exists)
+from ciphertrust.utils import (reformat_exception, concat_resources,  # type: ignore
+                               verify_path_exists)
 
 
 def format_request(response: Response) -> dict[str, Any]:
-    """_summary_
+    """Reformat request.
 
     :param response: _description_
     :type response: Response
@@ -35,42 +36,47 @@ def format_request(response: Response) -> dict[str, Any]:
     api_raise_error(response=response)
     json_response = {
         "exec_time": response.elapsed.total_seconds(),
-        "headers": json.loads(orjson.dumps(response.headers.__dict__["_store"]).decode('utf-8')), # pylint: disable=no-member
+        "headers": json.loads(orjson.dumps(response.headers.__dict__["_store"]).decode('utf-8')),  # pylint: disable=no-member
         "exec_time_end": datetime.datetime.utcnow().isoformat()
     }
     return json_response
 
 
 def standard_request(**kwargs: Any) -> dict[str, Any]:
-    """_summary_
+    """Call standard Request.
 
-    :return: _description_
+    :return: Adjusted Request Response
     :rtype: dict[str,Any]
     """
-    resp: Response = requests.request(**kwargs)
-    response = {**resp.json(), **format_request(resp)}
+    # Pop out saved_dir value to ensure doesn't get passed
+    kwargs.pop("saved_dir", "")
+    resp: Response = requests.request(**kwargs)  # pylint: disable=missing-timeout
+    response: dict[str, Any] = {**resp.json(), **format_request(resp)}
     return response
 
 
 def download_request(**kwargs: Any) -> dict[str, Any]:
-    """_summary_
+    """Use to Download Tar files. Only supports tar.gz can update.
 
-    :return: _description_
-    :rtype: Response
+    :return: Adjusted Request Ressponse
+    :rtype: dict[str,Any]
     """
-    chunk_size = kwargs.pop("chunk_size", 128)
-    save_path = kwargs.pop("save_dir", os.path.expanduser('~'))
+    chunk_size: int = kwargs.pop("chunk_size", 128)
+    save_path: str = kwargs.pop("save_dir", os.path.expanduser('~'))
     if not verify_path_exists(path_dir=save_path):
         raise FileExistsError(f"{save_path} does not exist")
     req: Response = requests.request(stream=True, **kwargs)  # pylint: disable=missing-timeout
-    parsed_url: urllib.parse.ParseResult = urllib.parse.urlparse(kwargs["url"])
-    save_filename = Path.joinpath(
+    parsed_url: urllib.parse.ParseResult = urllib.parse.urlparse(kwargs["url"])  # type: ignore
+    save_filename: Path = Path.joinpath(
         Path(save_path) /
-        f"{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}_ciphertrust_log_{parsed_url.hostname}.tar.gz")
+        f"{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}_ciphertrust_log_{parsed_url.hostname}.tar.gz")  # pylint: disable=line-too-long,unknown-option-value
     with open(save_filename, 'wb') as fild:
         for chunk in req.iter_content(chunk_size=chunk_size):
             fild.write(chunk)
-    response = {"message": "downloaded request completed", "location": str(save_filename)}
+    response: dict[str, str] = {
+        "message": "downloaded request completed",
+        "location": str(save_filename)
+    }
     response = {**response, **format_request(req)}
     return response
 
@@ -116,15 +122,17 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable
         "download": download_request,
         "standard": standard_request
     }
-    start_time = datetime.datetime.utcnow().isoformat()
-    response: dict[str, Any] = request_type["standard" if not stream else "download"](method=method,
-                                                                                      url=url,
-                                                                                      headers=headers,
-                                                                                      data=data,
-                                                                                      params=params,
-                                                                                      verify=verify,
-                                                                                      timeout=timeout,
-                                                                                      **kwargs)
+    start_time: str = datetime.datetime.utcnow().isoformat()
+    response: dict[str, Any] = request_type["standard" if not stream else "download"](
+        method=method,
+        url=url,
+        headers=headers,
+        data=data,
+        params=params,
+        verify=verify,
+        timeout=timeout,
+        **kwargs)
+    # Adds start time to response
     response["exec_time_start"] = start_time
     return response
 
@@ -211,7 +219,7 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
                                              iterations=send_iterations,  # type: ignore
                                              limit=limit,  # type: ignore
                                              **kwargs)
-        full_listed_resp = full_listed_resp + tmp_listed_resp
+        full_listed_resp: Any = full_listed_resp + tmp_listed_resp
         iterations -= 10
         print(f"One loop iteration completed new_iterations={iterations}")
     response = {**response, **build_responsde(full_listed_resp=full_listed_resp)}  # type: ignore
@@ -223,7 +231,10 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
 
 
 @refresh_token
-async def split_up_req(auth: Auth, iterations: int, limit: int, **kwargs: Any) -> List[Dict[str, Any]]:
+async def split_up_req(auth: Auth,
+                       iterations: int,
+                       limit: int,
+                       **kwargs: Any) -> List[Dict[str, Any]]:
     """Splitting up requests due to too many being sent and cannot handle.
       Trying to adjust with timeout, but still causes errors on return.
 
@@ -255,6 +266,13 @@ async def split_up_req(auth: Auth, iterations: int, limit: int, **kwargs: Any) -
 
 
 def build_responsde(full_listed_resp: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build Returned Reponse with statistics.
+
+    :param full_listed_resp: _description_
+    :type full_listed_resp: list[dict[str, Any]]
+    :return: _description_
+    :rtype: dict[str, Any]
+    """
     response: Dict[str, Any] = {
         "exec_time_end": 0.0,
         "exec_time_min": 0.0,
@@ -269,11 +287,18 @@ def build_responsde(full_listed_resp: list[dict[str, Any]]) -> dict[str, Any]:
     response["exec_time_min"] = min(elapsed_times)
     response["exec_time_max"] = max(elapsed_times)
     response["exec_time_stdev"] = statistics.stdev(elapsed_times)
-    response["resources"] = reduce(concat_resources, full_listed_resp)["resources"]
+    response["resources"] = reduce(concat_resources, full_listed_resp)["resources"]  # type: ignore
     return response
 
 
 def asyn_get_all(auth: Auth, **kwargs: Any) -> dict[str, Any]:
+    """Asyncio get All. Still under eval
+
+    :param auth: _description_
+    :type auth: Auth
+    :return: _description_
+    :rtype: dict[str, Any]
+    """
     return asyncio.run(ctm_request_list_all(auth=auth, **kwargs))
 
 

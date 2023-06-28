@@ -191,5 +191,5 @@ def refresh_token(decorated):  # type: ignore
                 #       f"{auth.expiration}|issued={auth.issued_at}")
         except KeyError:
             raise CipherAuthError(f"Invalid Authorization {auth}")
-        return decorated(auth, **kwargs)
+        return decorated(auth, **kwargs)  # type: ignore
     return wrapper

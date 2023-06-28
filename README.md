@@ -2,7 +2,7 @@
 
  Thales CipherTrust API
 
- ## Installation
+## Installation
 
  ```bash
  >>> python -m pip install ciphertrust-sdk
@@ -73,14 +73,15 @@ __Sample Output:__
 
 | Version | Build | Changes |
 | ------- | ----- | ------- |
-| **0.0.1** | **final** | Test Relese; basic functionality |
-| **1.0.1** | **final** | Available Release with API and Auth functionality |
-| **1.0.2** | **a1** | Removed print |
-| **1.0.2** | **a2** | Added metrics in calls and additional awaits to call on mutliple calls |
-| **1.0.2** | **final** | See notes below |
-| **1.0.3** | **final** | See notes below |
-| **1.0.4** | **final** | See notes below |
-| **1.0.5** | **final** | Fixed bug passing directory param in downloads call |
+| __0.0.1__ | __final__ | Test Relese; basic functionality |
+| __1.0.1__ | __final__ | Available Release with API and Auth functionality |
+| __1.0.2__ | __a1__ | Removed print |
+| __1.0.2__ | __a2__ | Added metrics in calls and additional awaits to call on mutliple calls |
+| __1.0.2__ | __final__ | See notes below |
+| __1.0.3__ | __final__ | See notes below |
+| __1.0.4__ | __final__ | See notes below |
+| __1.0.5__ | __final__ | Fixed bug passing directory param in downloads call |
+| __1.0.6__ | __final__ | HOTFIX with generic call |
 
 ### Known Bugs/Futue Features
 
@@ -98,14 +99,18 @@ __TODO:__
 
 #### Release Notes
 
-#### v1.0.5
+#### v1.0.6
 
-* Bug fixed with passing "save_dir" into get call for downloading log files.
+* __HOTFIX__ Issue with sandard get call passes invalid arg to response.
 
 __TODO:__
 
 * Need to build additional async requests when calling multiple items.
 * Build out ability to send multiple requests and hold the type of requests to make it easier to use the SDK.
+
+#### v1.0.5
+
+* Bug fixed with passing "save_dir" into get call for downloading log files.
 
 #### v1.0.4
 
