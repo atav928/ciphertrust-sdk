@@ -1,5 +1,6 @@
 """Utilities"""
 
+import datetime
 from typing import Dict, Any
 from pathlib import Path
 
@@ -15,7 +16,7 @@ def concat_resources(dict1, dict2) -> list[dict[str, Any]]:  # type: ignore
     :type dict1: _type_
     :param dict2: _description_
     :type dict2: _type_
-    :return: _description_
+    :return: Concatenated Resources Results
     :rtype: list[dict[str,Any]]
     """
     for key in dict2:  # type: ignore
@@ -61,9 +62,9 @@ def set_refresh_lifetime(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def set_refresh_token_revoke_unused_in(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    """Sets refresh_token_revoke_unused_in if exists
+    """Sets refresh_token_revoke_unused_in if exists.
 
-    :return: _description_
+    :return: returns refresh token revoke
     :rtype: Dict[str,Any]
     """
     response: Dict[str, Any] = {}
@@ -225,6 +226,23 @@ def verify_path_exists(path_dir: str) -> bool:
     """
     return Path(path_dir).exists()
 
+def verify_file_exists(filename: str) -> None:
+    """Verifies that a file being passed actually exists.
+
+    :param filename: Full Path Filename
+    :type path_dir: str
+    :raise: CipherValueError
+    """
+    if not Path(filename).is_file():
+        raise CipherValueError(f"Filen does not exist: {filename}")
+
+def return_time() -> str:
+    """Gets the current time and returns it in isoformt UTC.
+
+    :return: _description_
+    :rtype: str
+    """
+    return datetime.datetime.utcnow().isoformat()
 
 if __name__ == "__main__":
     valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]

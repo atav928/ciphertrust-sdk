@@ -14,7 +14,7 @@ import orjson
 from ciphertrust import config
 from ciphertrust.static import ENCODE
 from ciphertrust.models import AuthParams
-from ciphertrust.utils import default_payload, reformat_exception
+from ciphertrust.utils import default_payload, reformat_exception, return_time
 from ciphertrust.exceptions import (CipherAPIError, CipherAuthError, CipherValueError)
 
 # TODO: Convert to logging module
@@ -43,7 +43,9 @@ class Auth:
     exec_time_stdev: float = 0.0
     exec_time_min: float = 0.0
     exec_time_max: float = 0.0
-    exec_time: float = 0.0
+    exec_time_total: float = 0.0
+    exec_time_start: list[str] = []
+    exec_time_end: list[str] = []
     duration: int = 240
     refresh_params: Dict[str, Any] = {}
 
@@ -93,9 +95,9 @@ class Auth:
         :rtype: Dict[str,Any]
         """
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
-        # print(f"method={self.method}|url={self.url}|data={data}|timeout={self.timeout}|verify={self.verify}|headers={self.headers}")
+        self.exec_time_start.append(return_time())
         response: Response = self._request(data=data)
-        # print(f"response={response.json()}|code={response.status_code}")
+        self.exec_time_end.append(return_time())
         self.api_raise_error(response)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
@@ -104,7 +106,6 @@ class Auth:
         self._update_exec_time(response.elapsed.total_seconds())
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
-        # print(f"{response_json=}")
         self._update_token_info(response_json=response_json)
 
     def gen_refresh_token(self) -> None:
@@ -128,7 +129,7 @@ class Auth:
         :param exec_time: _description_
         :type exec_time: float
         """
-        self.exec_time = exec_time
+        self.exec_time_total = exec_time
         self.exec_time_elapsed.append(exec_time)
         self.exec_time_min = min(self.exec_time_elapsed)
         self.exec_time_max = max(self.exec_time_elapsed)
@@ -187,8 +188,6 @@ def refresh_token(decorated):  # type: ignore
         try:
             if time.time() >= auth.expiration:
                 auth.gen_refresh_token()
-                # print("Generatinga new token|auth.expiration=",
-                #       f"{auth.expiration}|issued={auth.issued_at}")
         except KeyError:
             raise CipherAuthError(f"Invalid Authorization {auth}")
         return decorated(auth, **kwargs)  # type: ignore
