@@ -1,7 +1,6 @@
 # pylint: disable=too-few-public-methods,missing-class-docstring
 """CipherTrust API"""
 
-import datetime
 from typing import Any, Dict
 import orjson
 from requests import Response
@@ -10,7 +9,7 @@ from ciphertrust import config
 from ciphertrust.utils import return_time
 from ciphertrust.models import RequestParams
 from ciphertrust.auth import Auth
-from ciphertrust.requestapi import (ctm_request, download_request, standard_request)
+from ciphertrust.requestapi import (ctm_request, delete_request, download_request, standard_request)
 from ciphertrust.static import ENCODE
 
 
@@ -82,7 +81,7 @@ class Get:
         :return: _description_
         :rtype: dict[str, Any]
         """
-        url: str = config.API_URL.format(self._parent_class.auth.hostname,url_path)  # type: ignore
+        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path)  # type: ignore
         save_dir = kwargs.pop("save_dir", "")
         ctm_get_kwargs: dict[str, Any] = RequestParams.create_from_kwargs(
             method=self.method,
@@ -90,7 +89,7 @@ class Get:
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs).asdict()
-        start_time: dict[str,Any] = {"exec_time_start": return_time()}
+        start_time: dict[str, Any] = {"exec_time_start": return_time()}
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_get_kwargs)  # type: ignore
         if save_dir:
             return {**start_time, **download_request(request=req, save_dir=save_dir)}
@@ -113,25 +112,15 @@ class Post:
         :type url_path: str
         """
         url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path)  # type: ignore
-        ctm_post_kwargs: dict[str,Any] = RequestParams.create_from_kwargs(
+        ctm_post_kwargs: dict[str, Any] = RequestParams.create_from_kwargs(
             url=url,
             method=self.method,
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs).asdict()
-        start_time: dict[str,Any] = {"exec_time_start": return_time()}
-        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_post_kwargs) # type:ignore
-        return {**start_time,**standard_request(request=req)}
-        # params: dict[str, Any] = kwargs.pop("params", {})
-        # data: str = self._parent_class.convert_to_string(  # type: ignore
-        #    query=kwargs.pop("query")) if kwargs.get("query") else ""
-        # response: dict[str, Any] = ctm_request(auth=self._parent_class.auth,  # type: ignore
-        #                                        method=self.method,
-        #                                        url=url,
-        #                                        params=params,
-        #                                        data=data,
-        #                                        timeout=self._parent_class.auth.timeout,
-        #                                        verify=self._parent_class.auth.verify)
+        start_time: dict[str, Any] = {"exec_time_start": return_time()}
+        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_post_kwargs)  # type:ignore
+        return {**start_time, **standard_request(request=req)}
 
 
 
@@ -152,16 +141,17 @@ class Delete:
         :return: _description_
         :rtype: dict[str, Any]
         """
-        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path) #type: ignore
-        ctm_delete_kwargs: dict[str,Any] = RequestParams.create_from_kwargs(
+        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path)  # type: ignore
+        ctm_delete_kwargs: dict[str, Any] = RequestParams.create_from_kwargs(
             url=url,
             method=self.method,
-            timeout=self._parent_class.auth.timeout, # type: ignore
-            verify=self._parent_class.auth.verify, # type: ignore
+            timeout=self._parent_class.auth.timeout,  # type: ignore
+            verify=self._parent_class.auth.verify,  # type: ignore
             **kwargs).asdict()
-        start_time: dict[str,Any] = {"exec_time_start": return_time()}
-        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_delete_kwargs) # type:ignore
-        return {**start_time,**standard_request(request=req)}
+        start_time: dict[str, Any] = {"exec_time_start": return_time()}
+        # Returns Status Code 204 without any content
+        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_delete_kwargs)  # type:ignore
+        return {**start_time, **delete_request(request=req)}
 
 
 class Patch:
@@ -182,15 +172,13 @@ class Patch:
         :rtype: Dict[str,Any]
         """
 
-        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path) # type: ignore
-        params: dict = kwargs.pop("params", {})
-        data: str = self._parent_class.convert_to_string(
-            query=kwargs.pop("query")) if kwargs.get("query") else ""
-        response: dict[str, Any] = ctm_request(auth=self._parent_class.auth,
-                                               url=url,
-                                               method=self.method,
-                                               params=params,
-                                               data=data,
-                                               timeout=self._parent_class.auth.timeout,
-                                               verify=self._parent_class.auth.verify)
-        return response
+        url: str = config.API_URL.format(self._parent_class.auth.hostname, url_path)  # type: ignore
+        ctm_patch_kwargs: dict[str, Any] = RequestParams.create_from_kwargs(
+            url=url,
+            method=self.method,
+            timeout=self._parent_class.auth.timeout,  # type: ignore
+            verify=self._parent_class.auth.verify,  # type: ignore
+            **kwargs).asdict()
+        start_time: dict[str, Any] = {"exec_time_start": return_time()}
+        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_patch_kwargs)  # type:ignore
+        return {**start_time, **standard_request(request=req)}

@@ -1,6 +1,7 @@
 """Request API"""
 
 from typing import Any, Dict, List
+import re
 import json
 import os
 import time
@@ -11,6 +12,7 @@ import copy
 from functools import reduce
 from pathlib import Path
 import urllib.parse
+from dateutil import parser
 
 import orjson
 import httpx
@@ -19,10 +21,10 @@ from requests import HTTPError, Response
 
 from ciphertrust.auth import (Auth, refresh_token)  # type: ignore
 from ciphertrust.exceptions import (CipherAPIError, CipherMissingParam)
-from ciphertrust.static import (DEFAULT_HEADERS, ENCODE,
+from ciphertrust.static import (DEFAULT_HEADERS, ENCODE, REGEX_NUM,
                                 DEFAULT_LIMITS_OVERRIDE, DEFAULT_TIMEOUT_CONFIG_OVERRIDE)
 from ciphertrust.utils import (reformat_exception, concat_resources,  # type: ignore
-                               verify_path_exists)
+                               verify_path_exists, return_time)
 
 
 def format_request(request: Response) -> dict[str, Any]:
@@ -34,9 +36,10 @@ def format_request(request: Response) -> dict[str, Any]:
     :rtype: dict[str,Any]
     """
     json_response = {
+        "status_code": request.status_code,
         "exec_time_total": request.elapsed.total_seconds(),
         "headers": json.loads(orjson.dumps(request.headers.__dict__["_store"]).decode(ENCODE)),  # pylint: disable=no-member
-        "exec_time_end": datetime.datetime.utcnow().isoformat()
+        "exec_time_end": return_time()
     }
     return json_response
 
@@ -48,6 +51,24 @@ def standard_request(request: Response) -> dict[str, Any]:
     :rtype: dict[str,Any]
     """
     req: dict[str, Any] = {**request.json(), **format_request(request)}
+    return req
+
+
+def delete_request(request: Response) -> dict[str, Any]:
+    """Deleteed request response.
+
+    :param request: _description_
+    :type request: Response
+    :return: _description_
+    :rtype: dict[str,Any]
+    """
+    ident: str = urllib.parse.urlparse(request.url).path.split('/')[-1]
+    value_type: str = re.sub(REGEX_NUM, "", urllib.parse.urlparse(request.url).path.split('/')[-2])
+    delete_response: dict[str, Any] = {
+        "id": ident,
+        "message": f"Deleted {value_type} with ID {ident}"
+    }
+    req: dict[str, Any] = {**delete_response, **format_request(request)}
     return req
 
 
@@ -140,8 +161,8 @@ async def ctm_request_async(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pyl
                                                 headers=headers)
     json_response = {
         "exec_time_total": response.elapsed.total_seconds(),
-        "headers": response.headers,
-        "exec_time_end": time.time()
+        "headers": json.loads(orjson.dumps(response.headers.__dict__["_store"]).decode(ENCODE)),  # pylint: disable=no-member
+        "exec_time_end": return_time()
     }
     return {**json_response, **response.json()}
 
@@ -159,7 +180,7 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
     """
     # inital response
     kwargs["params"] = {"limit": 1}
-    start_time: float = time.time()
+    start_time: str = return_time()
     resp: dict[str, Any] = ctm_request(auth=auth, **kwargs)
     limit: int = 1000
     total: int = resp["total"]
@@ -185,10 +206,8 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
         iterations -= 10
         # print(f"One loop iteration completed new_iterations={iterations}")
     response = {**response, **build_responsde(full_listed_resp=full_listed_resp)}  # type: ignore
-    response["exec_time_total"] = response["exec_time_end"] - start_time
-    response["exec_time_end"] = datetime.datetime.utcfromtimestamp(
-        response["exec_time_end"]).isoformat()
-    response["exec_time_start"] = datetime.datetime.utcfromtimestamp(start_time).isoformat()
+    response["exec_time_total"] = (parser.isoparse(response["exec_time_end"]) - parser.isoparse(start_time)).total_seconds()
+    response["exec_time_start"] = start_time
     return response
 
 

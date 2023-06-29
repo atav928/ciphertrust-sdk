@@ -1,3 +1,4 @@
+# pylint: disable=line-too-long
 """Models"""
 
 import copy
@@ -46,7 +47,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
     username: Optional[str] = NONETYPE
     cert: Optional[Any] = NONETYPE
     verify: Any = True
-    timeout: int = 60
+    timeout: float = DEFAULT_TIMEOUT
     headers: Dict[str, Any] = default_field(DEFAULT_HEADERS)
     expiration: Optional[int] = NONETYPE
 
@@ -137,7 +138,7 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
     timeout: Any = DEFAULT_TIMEOUT
     params: Optional[dict[str, Any]] = NONETYPE
     data: Optional[str] = NONETYPE
-    json: Optional[Any] = NONETYPE
+    json: Optional[dict[str,Any]] = NONETYPE
     headers: Dict[str, Any] = default_field(DEFAULT_HEADERS)
     cookies: Optional[dict[str, Any]] = NONETYPE
     files: Optional[dict[str, Any]] = NONETYPE
@@ -156,8 +157,8 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         """
         if self.method not in VALID_METHODS:
             raise CipherValueError(f"Invalid method type: {self.method}")
-        if all([isinstance(self.json, dict), self.json is not NONETYPE]):
-            self.json = orjson.dumps(self.json).decode(ENCODE)  # pylint: disable=no-member
+        if all([not isinstance(self.json, dict), self.json is not NONETYPE]):
+            raise CipherValueError(f"Invalid request param json: {self.json}")
         if all([isinstance(self.data, str), self.data is not NONETYPE]):
             self.data = orjson.dumps(self.data).decode(ENCODE)  # pylint: disable=no-member
         if not any([isinstance(self.verify, bool), isinstance(self.verify, str)]):

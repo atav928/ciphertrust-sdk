@@ -35,7 +35,8 @@ response = api.get.call(url_path="vault/keys2/")
 print(json.dumps(response, indent=2))
 ```
 
-__Sample Output:__
+<details><summary>Sample Output:</summary>
+<p>
 
 ```json
 {
@@ -69,6 +70,383 @@ __Sample Output:__
 }
 ```
 
+</p></details>
+
+## CipherTrust API Documenation
+
+### Keys
+
+#### Method POSTS
+
+__Create:__
+
+Creates a new key
+Endpoint: /v1/vault/keys2/
+Required: __alias__
+
+<details><summary>Create Body Schema</summary><p>
+
+```json
+{
+    "activationDate": string,
+    "algorithm": string,
+    "aliases": [
+        {
+            "alias": string,
+            "index": integer,
+            "type": string
+        }
+    ],
+    "archiveDate": string,
+    "certType": string,
+    "compromiseDate": string,
+    "compromiseOccurrenceDate": string,
+    "curveid": string,
+    "deactivationDate": string,
+    "defaultIV": string,
+    "destroyDate": string,
+    "format": string,
+    "generateKeyId": boolean,
+    "hkdfCreateParameters": {
+        "hashAlgorithm": string,
+        "ikmKeyName": string,
+        "info": string,
+        "salt": string
+    },
+    "id": string,
+    "idSize": integer,
+    "keyId": string,
+    "macSignBytes": string,
+    "macSignKeyIdentifier": string,
+    "macSignKeyIdentifierType": string,
+    "material": string,
+    "meta": {
+        "ownerId": string
+    },
+    "muid": string,
+    "name": string,
+    "objectType": string,
+    "padded": boolean,
+    "password": string,
+    "processStartDate": string,
+    "protectStopDate": string,
+    "publicKeyParameters": {
+        "activationDate": string,
+        "aliases": [
+            {
+                "alias": string,
+                "index": integer,
+                "type": string
+            }
+        ],
+        "archiveDate": string,
+        "deactivationDate": string,
+        "meta": {        },
+        "name": string,
+        "state": string,
+        "undeletable": boolean,
+        "unexportable": boolean,
+        "usageMask": integer
+    },
+    "revocationMessage": string,
+    "revocationReason": string,
+    "rotationFrequencyDays": string,
+    "signingAlgo": string,
+    "size": integer,
+    "state": string,
+    "undeletable": boolean,
+    "unexportable": boolean,
+    "usageMask": integer,
+    "uuid": string,
+    "wrapHKDF": {
+        "hashAlgorithm": string,
+        "info": string,
+        "okmLen": integer,
+        "salt": string
+    },
+    "wrapIV": string,
+    "wrapKeyIDType": string,
+    "wrapKeyName": string,
+    "wrapPBE": {
+        "dklen": integer,
+        "hashAlgorithm": string,
+        "iteration": integer,
+        "password": string,
+        "passwordIdentifier": string,
+        "passwordIdentifierType": string,
+        "purpose": string,
+        "salt": string
+    },
+    "wrapPublicKey": string,
+    "wrapPublicKeyPadding": string,
+    "wrappingEncryptionAlgo": string,
+    "wrappingHashAlgo": string,
+    "wrappingMethod": string,
+    "xts": boolean
+}
+```
+
+</p></details>
+
+__Export:__
+
+Returns metadata and the material of the latest version of the key matching the given id and the JWT's account claim.
+
+Endpoint: /v1/vault/keys2/_{id}_/export
+
+<details><summary>Export Body Schema</summary><p>
+
+```json
+{
+    "combineXts": boolean,
+    "format": string,
+    "macSignKeyIdentifier": string,
+    "macSignKeyIdentifierType": string,
+    "padded": boolean,
+    "password": string,
+    "pemWrap": boolean,
+    "signingAlgo": string,
+    "wrapHKDF": {
+        "hashAlgorithm": string,
+        "info": string,
+        "okmLen": integer,
+        "salt": string
+    },
+    "wrapIV": string,
+    "wrapJWE": {
+        "contentEncryptionAlgorithm": string,
+        "jwtIdentifier": string,
+        "keyEncryptionAlgorithm": string,
+        "keyIdentifier": string
+    },
+    "wrapKeyIDType": string,
+    "wrapKeyName": string,
+    "wrapPBE": {
+        "dklen": integer,
+        "hashAlgorithm": string,
+        "iteration": integer,
+        "password": string,
+        "passwordIdentifier": string,
+        "passwordIdentifierType": string,
+        "purpose": string,
+        "salt": string
+    },
+    "wrapPublicKey": string,
+    "wrapPublicKeyPadding": string,
+    "wrapSymmetricKeyName": string,
+    "wrappingEncryptionAlgo": string,
+    "wrappingHashAlgo": string,
+    "wrappingMethod": string
+}
+```
+
+</p></details>
+
+__Query-Keys:__
+
+This operation searches for keys stored on the CipherTrust Manager. The operation is similar to the list operation. The differences are (a) a lot more search parameters can be passed in, and (b) the search parameters are passed in the body of an HTTP POST request instead of being passed as query parameters in a HTTP GET request. Normally, this operation returns a list of keys, secrets, etc., that satisfy the search criteria. When the returnOnlyIDs input parameter is specified as true, this operation just returns a list of key IDs.
+
+<details><summary>Query Keys Body Schema</summary><p>
+
+```json
+{
+    "activationAfter": string,
+    "activationAt": string,
+    "activationBefore": string,
+    "algorithm": string,
+    "algorithms": [
+        string
+    ],
+    "aliases": [
+        string
+    ],
+    "archiveAfter": string,
+    "archiveAt": string,
+    "archiveBefore": string,
+    "certFields": {
+        "certLength": integer,
+        "certType": string,
+        "dsalg": string,
+        "issuerANFields": {
+            "dns": [
+                string
+            ],
+            "emailAddress": [
+                string
+            ],
+            "ipAddress": [
+                string
+            ],
+            "uri": [
+                string
+            ]
+        },
+        "issuerDNFields": {
+            "c": [
+                string
+            ],
+            "cn": string,
+            "dc": [
+                string
+            ],
+            "dnq": [
+                string
+            ],
+            "email": [
+                string
+            ],
+            "l": [
+                string
+            ],
+            "o": [
+                string
+            ],
+            "ou": [
+                string
+            ],
+            "sn": string,
+            "st": [
+                string
+            ],
+            "street": [
+                string
+            ],
+            "t": [
+                string
+            ],
+            "uid": [
+                string
+            ]
+        },
+        "serialNumber": string,
+        "subjectANFields": {
+            "dns": [
+                string
+            ],
+            "emailAddress": [
+                string
+            ],
+            "ipAddress": [
+                string
+            ],
+            "uri": [
+                string
+            ]
+        },
+        "subjectDNFields": {
+            "c": [
+                string
+            ],
+            "cn": string,
+            "dc": [
+                string
+            ],
+            "dnq": [
+                string
+            ],
+            "email": [
+                string
+            ],
+            "l": [
+                string
+            ],
+            "o": [
+                string
+            ],
+            "ou": [
+                string
+            ],
+            "sn": string,
+            "st": [
+                string
+            ],
+            "street": [
+                string
+            ],
+            "t": [
+                string
+            ],
+            "uid": [
+                string
+            ]
+        },
+        "x509SerialNumber": string
+    },
+    "compromiseAfter": string,
+    "compromiseAt": string,
+    "compromiseBefore": string,
+    "compromiseOccurranceAfter": string,
+    "compromiseOccurranceAt": string,
+    "compromiseOccurranceBefore": string,
+    "createdAfter": string,
+    "createdAt": string,
+    "createdBefore": string,
+    "curveIDs": [
+        string
+    ],
+    "deactivationAfter": string,
+    "deactivationAt": string,
+    "deactivationBefore": string,
+    "destroyAfter": string,
+    "destroyAt": string,
+    "destroyBefore": string,
+    "id": string,
+    "limit": integer,
+    "linkTypes": [
+        string
+    ],
+    "metaContains": string,
+    "name": string,
+    "neverExportable": boolean,
+    "neverExported": boolean,
+    "objectTypes": [
+        string
+    ],
+    "processStartAfter": string,
+    "processStartAt": string,
+    "processStartBefore": string,
+    "protectStopAfter": string,
+    "protectStopAt": string,
+    "protectStopBefore": string,
+    "returnOnlyIDs": boolean,
+    "revocationReason": string,
+    "revocationReasons": [
+        string
+    ],
+    "rotationDateReached": boolean,
+    "sha1Fingerprint": string,
+    "sha1Fingerprints": [
+        string
+    ],
+    "sha256Fingerprint": string,
+    "sha256Fingerprints": [
+        string
+    ],
+    "size": integer,
+    "sizes": [
+        integer
+    ],
+    "skip": integer,
+    "states": [
+        string
+    ],
+    "updatedAfter": string,
+    "updatedAt": string,
+    "updatedBefore": string,
+    "uri": string,
+    "usageMask": integer,
+    "usageMasks": [
+        integer
+    ],
+    "version": integer,
+    "versions": [
+        integer
+    ]
+}
+```
+
+</p></details>
+
 ## Version
 
 | Version | Build | Changes |
@@ -82,6 +460,8 @@ __Sample Output:__
 | __1.0.4__ | __final__ | See notes below |
 | __1.0.5__ | __final__ | Fixed bug passing directory param in downloads call |
 | __1.0.6__ | __final__ | HOTFIX with generic call |
+| __1.0.6__ | __hotfix__ | Fixes issues with not raising proper errors when params are being passed |
+| __1.0.6__ | __feature__ | Adjusted and tested remaining http calls; see notes for details |
 
 ### Known Bugs/Futue Features
 
@@ -98,6 +478,20 @@ __TODO:__
 * &#9745; Create a download method to handle downlaoding files
 
 #### Release Notes
+
+#### v1.0.7
+
+* Issues when parsing response depending on call done with GET due to parameters not being stripped out.
+  * Created a RequestParam that strips out any additional variable arguments getting passed to avoid this issue.
+  * Added error handling to ensure that proper error response is reported when issue occurs.
+  * Raises local class CipherTrust Exceptions.
+* Issues with PATCH, POST, and DELETE HTTP Operations due to how CipherTrust responds and how the SDK expected a response back.
+  * Adjusted how each call is handled stripping out unnecessary params only passing the proper ones.
+  * Adjusted how responses that are OK without any content are reorganized and responded to.
+* CipherTrust responds with Zulu based time; so adjusted the response times on the API calls to follow suite.
+  * Due to this all exec_time_end and exec_time_start times need to be parsed and converted properly to be able to make correct time calls.
+* Adjusted requests.headers response to ensure no Dict issues are raised.
+* Added status code to response to bundle into the response as with the different calls there are different OK codes that can designate the proper changes.
 
 #### v1.0.6
 

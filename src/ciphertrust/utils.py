@@ -242,7 +242,7 @@ def return_time() -> str:
     :return: _description_
     :rtype: str
     """
-    return datetime.datetime.utcnow().isoformat()
+    return f"{datetime.datetime.utcnow().isoformat()}Z"
 
 if __name__ == "__main__":
     valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]
