@@ -4,6 +4,7 @@
 from typing import Dict, Any
 import datetime
 import statistics
+from urllib3.exceptions import NameResolutionError
 # from urllib.parse import urlparse
 
 import jwt
@@ -51,6 +52,7 @@ class Auth:
     exec_time_end: list[str] = []
     duration: int = 240
     refresh_params: Dict[str, Any] = {}
+    _response = None
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         authparams: Dict[str, Any] = AuthParams(**kwargs).asdict()  # type: ignore
@@ -98,9 +100,26 @@ class Auth:
         :rtype: Dict[str,Any]
         """
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
-        start_time = datetime.datetime.utcnow().timestamp()
+        start_time: float = datetime.datetime.utcnow().timestamp()
         self.exec_time_start.append(return_time())
-        response: Response = self._request(data=data)
+        try:
+            response: Response = self._request(data=data)
+        except (Exception) as err:
+            end_time = datetime.datetime.utcnow().timestamp()
+            self._update_exec_time(exec_time=(datetime.datetime.fromtimestamp(
+                end_time) - datetime.datetime.fromtimestamp(start_time)))  # type: ignore
+            error = reformat_exception(err)
+            error_message = {
+                "error": error,
+                "error_type": "CipherAuthError",
+                "error_response": "Bad Request"
+            }
+            response = self._create_error_response(error=error,
+                                                   status_code=400,
+                                                   start_time=start_time,
+                                                   error_message=error_message)
+            self._response = response
+            return None
         self.exec_time_end.append(return_time())
         try:
             self.api_raise_error(response)
@@ -116,31 +135,21 @@ class Auth:
                     exec_time_end=end_time, exec_time_start=start_time,
                     x_proccessing_time=response.headers.get("X-Processing-Time"),
                     url=self.url))
-        except HTTPError as err:
+        except (HTTPError) as err:
             self._update_exec_time(response.elapsed.total_seconds())
             error = reformat_exception(err)
-            end_time: float = datetime.datetime.utcnow().timestamp()
             error_message = {
                 "error": error,
                 "error_type": "CipherAuthError",
                 "error_response": f"{response.text if response.text else response.reason}"
             }
-            response: Response = create_error_response(error=error,
-                                                       status_code=response.status_code,
-                                                       start_time=start_time,
-                                                       end_time=end_time,
-                                                       url=self.url,
-                                                       timeout=self.timeout)
-            cipher_log.error(
-                splunk_format(
-                    source="ciphertrust-sdk",
-                    hostname=self.hostname, status_code=response.status_code,
-                    exec_time_total=response.elapsed.total_seconds(),
-                    exec_time_elapsed=self.exec_time_elapsed[-1],
-                    exec_time_end=end_time, exec_time_start=start_time,
-                    x_proccessing_time=response.headers.get("X-Processing-Time"),
-                    url=self.url,
-                    **error_message))
+            response = self._create_error_response(error=error,
+                                                   status_code=response.status_code,
+                                                   start_time=start_time,
+                                                   error_message=error_message)
+            self._response = response
+            return None
+            # raise CipherAuthError(error)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
@@ -175,28 +184,18 @@ class Auth:
         except (HTTPError, CipherAuthError) as err:
             self._update_exec_time(response.elapsed.total_seconds())
             error = reformat_exception(err)
-            end_time: float = datetime.datetime.utcnow().timestamp()
             error_message = {
                 "error": error,
                 "error_type": "CipherAuthError",
                 "error_response": f"{response.text if response.text else response.reason}"
             }
-            response: Response = create_error_response(error=error,
-                                                       status_code=response.status_code,
-                                                       start_time=start_time,
-                                                       end_time=end_time,
-                                                       url=self.url,
-                                                       timeout=self.timeout)
-            cipher_log.error(
-                splunk_format(
-                    source="ciphertrust-sdk",
-                    hostname=self.hostname, status_code=response.status_code,
-                    exec_time_total=response.elapsed.total_seconds(),
-                    exec_time_elapsed=self.exec_time_elapsed[-1],
-                    exec_time_end=end_time, exec_time_start=start_time,
-                    x_proccessing_time=response.headers.get("X-Processing-Time"),
-                    url=self.url,
-                    **error_message))
+            response = self._create_error_response(error=error,
+                                                   status_code=response.status_code,
+                                                   start_time=start_time,
+                                                   error_message=error_message)
+            self._response = response
+            return None
+            # raise CipherAuthError(error)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
@@ -204,6 +203,27 @@ class Auth:
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
         self._update_token_info(response_json=response_json)
+
+    def _create_error_response(
+            self, error: str, status_code: int, start_time: float, error_message: dict[str, str]):
+        end_time = datetime.datetime.utcnow().timestamp()
+        response: Response = create_error_response(error=error,
+                                                   status_code=status_code,
+                                                   start_time=start_time,
+                                                   end_time=end_time,
+                                                   url=self.url,
+                                                   timeout=self.timeout)
+        cipher_log.error(
+            splunk_format(
+                source="ciphertrust-sdk",
+                hostname=self.hostname, status_code=response.status_code,
+                exec_time_total=response.elapsed.total_seconds(),
+                exec_time_elapsed=self.exec_time_elapsed[-1],
+                exec_time_end=end_time, exec_time_start=start_time,
+                x_proccessing_time=response.headers.get("X-Processing-Time"),
+                url=self.url,
+                **error_message))
+        return response
 
     def _update_exec_time(self, exec_time: float) -> None:
         """Updates Execution Times to track 
@@ -246,6 +266,14 @@ class Auth:
                                               timeout=self.timeout,
                                               verify=self.verify)
         return response
+
+    @property
+    def response(self):
+        return self._response
+
+    @response.setter
+    def response(self, value):
+        self._response = value
 
     def api_raise_error(self, response: Response) -> None:
         """Raises error if response not what was expected
