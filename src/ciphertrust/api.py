@@ -9,7 +9,7 @@ from ciphertrust import config
 from ciphertrust.utils import return_time
 from ciphertrust.models import RequestParams
 from ciphertrust.auth import Auth
-from ciphertrust.requestapi import (ctm_request, delete_request, download_request, standard_request)
+from ciphertrust.requestapi import (api_raise_error, ctm_request)
 from ciphertrust.static import ENCODE
 
 
@@ -71,6 +71,7 @@ class Get:
     """
 
     _parent_class = None
+    _response: Response
     method: str = "GET"
 
     def call(self, url_path: str, **kwargs: Any) -> dict[str, Any]:
@@ -89,11 +90,27 @@ class Get:
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs).asdict()
-        start_time: dict[str, Any] = {"exec_time_start": return_time()}
+        start_time: str = return_time()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_get_kwargs)  # type: ignore
+        self._response = req
         if save_dir:
-            return {**start_time, **download_request(request=req, save_dir=save_dir)}
-        return {**start_time, **standard_request(request=req)}
+            response = api_raise_error(response=req, save_dir=save_dir,
+                                       start_time=start_time,  **ctm_get_kwargs)
+            return response
+        response = api_raise_error(response=req, method_type="standard",
+                                   start_time=start_time, **ctm_get_kwargs)
+        return response
+
+    @property
+    def response(self) -> Response:
+        return self._response
+
+    @response.setter
+    def response(self, value: Response) -> None:
+        self._response = value
+
+    def return_response(self) -> Response:
+        return self._response
 
 
 class Post:
@@ -103,6 +120,7 @@ class Post:
     :rtype: _type_
     """
     _parent_class = None
+    _response: Response
     method: str = "POST"
 
     def call(self, url_path: str, **kwargs: Any) -> Dict[str, Any]:
@@ -118,10 +136,22 @@ class Post:
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs).asdict()
-        start_time: dict[str, Any] = {"exec_time_start": return_time()}
+        start_time: str = return_time()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_post_kwargs)  # type:ignore
-        return {**start_time, **standard_request(request=req)}
+        self._response = req
+        return api_raise_error(
+            response=req, method_type="standard", start_time=start_time, **ctm_post_kwargs)
 
+    @property
+    def response(self) -> Response:
+        return self._response
+
+    @response.setter
+    def response(self, value: Response) -> None:
+        self._response = value
+
+    def return_response(self) -> Response:
+        return self._response
 
 
 class Delete:
@@ -131,6 +161,7 @@ class Delete:
     :rtype: _type_
     """
     _parent_class = None
+    _response: Response
     method: str = "DELETE"
 
     def call(self, url_path: str, **kwargs: Any) -> dict[str, Any]:
@@ -148,10 +179,23 @@ class Delete:
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
             **kwargs).asdict()
-        start_time: dict[str, Any] = {"exec_time_start": return_time()}
+        start_time: str = return_time()
         # Returns Status Code 204 without any content
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_delete_kwargs)  # type:ignore
-        return {**start_time, **delete_request(request=req)}
+        self._response = req
+        return api_raise_error(
+            response=req, method_type="delete", start_time=start_time, **ctm_delete_kwargs)
+
+    @property
+    def response(self) -> Response:
+        return self._response
+
+    @response.setter
+    def response(self, value: Response) -> None:
+        self._response = value
+
+    def return_response(self) -> Response:
+        return self._response
 
 
 class Patch:
@@ -161,6 +205,7 @@ class Patch:
     :rtype: _type_
     """
     _parent_class = None
+    _response: Response
     method: str = "PATCH"
 
     def call(self, url_path: str, **kwargs: Any) -> Dict[str, Any]:
@@ -179,6 +224,19 @@ class Patch:
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
             **kwargs).asdict()
-        start_time: dict[str, Any] = {"exec_time_start": return_time()}
+        start_time: str = return_time()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_patch_kwargs)  # type:ignore
-        return {**start_time, **standard_request(request=req)}
+        self._response = req
+        return api_raise_error(
+            response=req, method_type="standard", start_time=start_time, **ctm_patch_kwargs)
+
+    @property
+    def response(self) -> Response:
+        return self._response
+
+    @response.setter
+    def response(self, value: Response) -> None:
+        self._response = value
+
+    def return_response(self) -> Response:
+        return self._response

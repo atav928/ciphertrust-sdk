@@ -2,7 +2,7 @@
 """Authorization"""
 
 from typing import Dict, Any
-import time
+import datetime
 import statistics
 # from urllib.parse import urlparse
 
@@ -11,13 +11,16 @@ import requests
 from requests import HTTPError, Response
 import orjson
 
-from ciphertrust import config
+from easy_logger.log_format import splunk_format
+
+from ciphertrust import config, logger
 from ciphertrust.static import ENCODE
 from ciphertrust.models import AuthParams
-from ciphertrust.utils import default_payload, reformat_exception, return_time
+from ciphertrust.utils import (create_error_response, default_payload,
+                               reformat_exception, return_time)
 from ciphertrust.exceptions import (CipherAPIError, CipherAuthError, CipherValueError)
 
-# TODO: Convert to logging module
+cipher_log = logger.getLogger(__name__)
 
 
 class Auth:
@@ -95,15 +98,53 @@ class Auth:
         :rtype: Dict[str,Any]
         """
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
+        start_time = datetime.datetime.utcnow().timestamp()
         self.exec_time_start.append(return_time())
         response: Response = self._request(data=data)
         self.exec_time_end.append(return_time())
-        self.api_raise_error(response)
+        try:
+            self.api_raise_error(response)
+            self._update_exec_time(response.elapsed.total_seconds())
+            end_time = datetime.datetime.utcnow().timestamp()
+            cipher_log.info(
+                splunk_format(
+                    source="ciphertrust-sdk",
+                    message="Generated Auth Token", hostname=self.hostname,
+                    status_code=response.status_code,
+                    exec_time_total=response.elapsed.total_seconds(),
+                    exec_time_elapsed=self.exec_time_elapsed[-1],
+                    exec_time_end=end_time, exec_time_start=start_time,
+                    x_proccessing_time=response.headers.get("X-Processing-Time"),
+                    url=self.url))
+        except HTTPError as err:
+            self._update_exec_time(response.elapsed.total_seconds())
+            error = reformat_exception(err)
+            end_time: float = datetime.datetime.utcnow().timestamp()
+            error_message = {
+                "error": error,
+                "error_type": "CipherAuthError",
+                "error_response": f"{response.text if response.text else response.reason}"
+            }
+            response: Response = create_error_response(error=error,
+                                                       status_code=response.status_code,
+                                                       start_time=start_time,
+                                                       end_time=end_time,
+                                                       url=self.url,
+                                                       timeout=self.timeout)
+            cipher_log.error(
+                splunk_format(
+                    source="ciphertrust-sdk",
+                    hostname=self.hostname, status_code=response.status_code,
+                    exec_time_total=response.elapsed.total_seconds(),
+                    exec_time_elapsed=self.exec_time_elapsed[-1],
+                    exec_time_end=end_time, exec_time_start=start_time,
+                    x_proccessing_time=response.headers.get("X-Processing-Time"),
+                    url=self.url,
+                    **error_message))
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
             raise CipherAPIError("No token in response")
-        self._update_exec_time(response.elapsed.total_seconds())
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
         self._update_token_info(response_json=response_json)
@@ -111,14 +152,55 @@ class Auth:
     def gen_refresh_token(self) -> None:
         payload: Dict[str, Any] = self._create_payload(self.refresh_authparams.asdict())
         data: str = orjson.dumps(payload).decode(ENCODE)  # pylint: disable=no-member
+        self.exec_time_start.append(return_time())
+        start_time = datetime.datetime.utcnow().timestamp()
         response: Response = self._request(data=data)
+        self.exec_time_end.append(return_time())
+        end_time = datetime.datetime.utcnow().timestamp()
         # print(f"response_code{response.status_code}|response={response.json()}")
-        self.api_raise_error(response=response)
+        try:
+            self.api_raise_error(response=response)
+            self._update_exec_time(response.elapsed.total_seconds())
+            end_time = datetime.datetime.utcnow().timestamp()
+            cipher_log.info(
+                splunk_format(
+                    source="ciphertrust-sdk",
+                    message="Generated Refresh Token", hostname=self.hostname,
+                    status_code=response.status_code,
+                    exec_time_total=response.elapsed.total_seconds(),
+                    exec_time_elapsed=self.exec_time_elapsed[-1],
+                    exec_time_end=end_time, exec_time_start=start_time,
+                    x_proccessing_time=response.headers.get("X-Processing-Time"),
+                    url=self.url))
+        except (HTTPError, CipherAuthError) as err:
+            self._update_exec_time(response.elapsed.total_seconds())
+            error = reformat_exception(err)
+            end_time: float = datetime.datetime.utcnow().timestamp()
+            error_message = {
+                "error": error,
+                "error_type": "CipherAuthError",
+                "error_response": f"{response.text if response.text else response.reason}"
+            }
+            response: Response = create_error_response(error=error,
+                                                       status_code=response.status_code,
+                                                       start_time=start_time,
+                                                       end_time=end_time,
+                                                       url=self.url,
+                                                       timeout=self.timeout)
+            cipher_log.error(
+                splunk_format(
+                    source="ciphertrust-sdk",
+                    hostname=self.hostname, status_code=response.status_code,
+                    exec_time_total=response.elapsed.total_seconds(),
+                    exec_time_elapsed=self.exec_time_elapsed[-1],
+                    exec_time_end=end_time, exec_time_start=start_time,
+                    x_proccessing_time=response.headers.get("X-Processing-Time"),
+                    url=self.url,
+                    **error_message))
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
             raise CipherAPIError("No token in response")
-        self._update_exec_time(response.elapsed.total_seconds())
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
         self._update_token_info(response_json=response_json)
@@ -186,7 +268,7 @@ class Auth:
 def refresh_token(decorated):  # type: ignore
     def wrapper(auth: Auth, **kwargs: Dict[str, Any]) -> Any:
         try:
-            if time.time() >= auth.expiration:
+            if datetime.datetime.utcnow().timestamp() >= auth.expiration:
                 auth.gen_refresh_token()
         except KeyError:
             raise CipherAuthError(f"Invalid Authorization {auth}")

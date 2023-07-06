@@ -4,7 +4,6 @@ from typing import Any, Dict, List
 import re
 import json
 import os
-import time
 import datetime
 import statistics
 import asyncio
@@ -17,17 +16,22 @@ from dateutil import parser
 import orjson
 import httpx
 import requests
-from requests import HTTPError, Response
+from requests import HTTPError, Response, ReadTimeout
 
+from easy_logger.log_format import splunk_format
+
+from ciphertrust import logger
 from ciphertrust.auth import (Auth, refresh_token)  # type: ignore
-from ciphertrust.exceptions import (CipherAPIError, CipherMissingParam)
+from ciphertrust.exceptions import (CipherMissingParam)
 from ciphertrust.static import (DEFAULT_HEADERS, ENCODE, REGEX_NUM,
                                 DEFAULT_LIMITS_OVERRIDE, DEFAULT_TIMEOUT_CONFIG_OVERRIDE)
-from ciphertrust.utils import (reformat_exception, concat_resources,  # type: ignore
-                               verify_path_exists, return_time)
+from ciphertrust.utils import (convert_to_epoch, reformat_exception, concat_resources,  # type: ignore
+                               verify_path_exists, return_time, create_error_response)
+
+cipher_log = logger.getLogger(__name__)
 
 
-def format_request(request: Response) -> dict[str, Any]:
+def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
     """Reformat request.
 
     :param response: _description_
@@ -35,26 +39,41 @@ def format_request(request: Response) -> dict[str, Any]:
     :return: _description_
     :rtype: dict[str,Any]
     """
-    json_response = {
-        "status_code": request.status_code,
-        "exec_time_total": request.elapsed.total_seconds(),
-        "headers": json.loads(orjson.dumps(request.headers.__dict__["_store"]).decode(ENCODE)),  # pylint: disable=no-member
-        "exec_time_end": return_time()
+    start_time: float = convert_to_epoch(kwargs['start_time'])
+    headers: Any = json.loads(orjson.dumps(request.headers.__dict__["_store"]).decode(ENCODE)),  # pylint: disable=no-member
+    json_response: dict[str, Any] = {
+        "headers": headers,
+        "response_statistics": {
+            "status_code": request.status_code,
+            "exec_time_total": request.elapsed.total_seconds(),
+            "exec_time_elapsed": request.elapsed.total_seconds(),
+            "exec_time_end": datetime.datetime.utcnow().timestamp(),
+            "exec_time_start": start_time,
+            "x_proccessing_time": request.headers.get("X-Processing-Time"),
+            "url": request.url
+        },
+        "request_parameters": {
+            "method": kwargs.get("method"),
+            "timeout": kwargs.get("timeout"),
+            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE), # pylint: disable=no-member
+            "verify": bool(kwargs.get("verify")),
+            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE) # pylint: disable=no-member
+        }
     }
     return json_response
 
 
-def standard_request(request: Response) -> dict[str, Any]:
+def standard_request(request: Response, **kwargs: Any) -> dict[str, Any]:
     """Call standard Request.
 
     :return: Adjusted Request Response
     :rtype: dict[str,Any]
     """
-    req: dict[str, Any] = {**request.json(), **format_request(request)}
+    req: dict[str, Any] = {**request.json(), **format_request(request, **kwargs)}
     return req
 
 
-def delete_request(request: Response) -> dict[str, Any]:
+def delete_request(request: Response, **kwargs: Any) -> dict[str, Any]:
     """Deleteed request response.
 
     :param request: _description_
@@ -68,7 +87,7 @@ def delete_request(request: Response) -> dict[str, Any]:
         "id": ident,
         "message": f"Deleted {value_type} with ID {ident}"
     }
-    req: dict[str, Any] = {**delete_response, **format_request(request)}
+    req: dict[str, Any] = {**delete_response, **format_request(request, **kwargs)}
     return req
 
 
@@ -89,11 +108,11 @@ def download_request(request: Response, **kwargs: Any) -> dict[str, Any]:
     with open(save_filename, 'wb') as fild:
         for chunk in request.iter_content(chunk_size=chunk_size):
             fild.write(chunk)
-    response: dict[str, str] = {
+    response: dict[str, Any] = {
         "message": "downloaded system logs completed",
         "location": str(save_filename)
     }
-    response = {**response, **format_request(request)}
+    response = {**response, **format_request(request, **kwargs)}
     return response
 
 
@@ -110,8 +129,6 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Response:  # pylint: disable=too-m
         verify (str|bool, optional): sets request to verify with a custom
          cert bypass verification or verify with standard library. Defaults to True
         timeout (int, optional): sets API call timeout. Defaults to 60
-        delete_object (str, required|optional): Required if method is DELETE
-        put_object (str, required|optional): Required if method is PUT
         limit (int, Optional): The maximum number of results
         offset (int, Optional): The offset of the result entry
         get_object (str, Optional): Used if method is "GET", but additional path parameters required
@@ -119,8 +136,17 @@ def ctm_request(auth: Auth, **kwargs: Any) -> Response:  # pylint: disable=too-m
         _type_: _description_
     """
     kwargs.get("headers", {}).update({"Authorization": f"Bearer {auth.token}"})
-    response: Response = requests.request(**kwargs)  # pylint: disable=missing-timeout
-    api_raise_error(response=response)
+    start_time: float = datetime.datetime.utcnow().timestamp()
+    try:
+        response: Response = requests.request(**kwargs)  # pylint: disable=missing-timeout
+    except ReadTimeout as err:
+        error = reformat_exception(err)
+        end_time: float = datetime.datetime.utcnow().timestamp()
+        response: Response = create_error_response(error=error,
+                                                   status_code=598,
+                                                   start_time=start_time,
+                                                   end_time=end_time,
+                                                   **kwargs)
     return response
 
 
@@ -206,7 +232,8 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
         iterations -= 10
         # print(f"One loop iteration completed new_iterations={iterations}")
     response = {**response, **build_responsde(full_listed_resp=full_listed_resp)}  # type: ignore
-    response["exec_time_total"] = (parser.isoparse(response["exec_time_end"]) - parser.isoparse(start_time)).total_seconds()
+    response["exec_time_total"] = (parser.isoparse(
+        response["exec_time_end"]) - parser.isoparse(start_time)).total_seconds()
     response["exec_time_start"] = start_time
     return response
 
@@ -243,7 +270,7 @@ async def split_up_req(auth: Auth,
             tasks.append(asyncio.ensure_future(ctm_request_async(auth=auth, **kwargs)))
         full_listed_resp: List[Dict[str, Any]] = await asyncio.gather(*tasks)  # type: ignore
     return full_listed_resp  # type: ignore
-    # print(f"{full_listed_resp=}")
+
 
 
 def build_responsde(full_listed_resp: list[dict[str, Any]]) -> dict[str, Any]:
@@ -261,7 +288,7 @@ def build_responsde(full_listed_resp: list[dict[str, Any]]) -> dict[str, Any]:
         "exec_time_stdev": 0.0,
         "resources": []
     }
-    end_time: float = time.time()
+    end_time: float = datetime.datetime.utcnow().timestamp()
     elapsed_times: list[float] = [value["exec_time_total"] for value in full_listed_resp]
     response["elapsed_times"] = elapsed_times
     response["exec_time_end"] = end_time
@@ -283,7 +310,9 @@ def asyn_get_all(auth: Auth, **kwargs: Any) -> dict[str, Any]:
     return asyncio.run(ctm_request_list_all(auth=auth, **kwargs))
 
 
-def api_raise_error(response: Response) -> None:
+def api_raise_error(response: Response,
+                    method_type: str = "standard",
+                    **kwargs: Any) -> dict[str, Any]:
     """Raises error if response not what was expected
 
     Args:
@@ -293,8 +322,32 @@ def api_raise_error(response: Response) -> None:
         CipherPermission: _description_
         CipherAPIError: _description_
     """
+    formats: dict[str, Any] = {
+        "standard": standard_request,
+        "download": download_request,
+        "delete": delete_request
+    }
+    cipher_log.debug(splunk_format(**kwargs))
     try:
         response.raise_for_status()
-    except HTTPError as err:
+        return_response = formats[method_type](response, **kwargs)
+        #print(return_response)
+        cipher_log.info(splunk_format(source="ciphertrust-sdk",message="CipherTrust API Request",**{**return_response["response_statistics"], **return_response["request_parameters"]}))
+    except (HTTPError) as err:
         error: str = reformat_exception(err)
-        raise CipherAPIError(f"{error=}|response={response.text}")
+        error_message = {
+            "error": error,
+            "error_type": "CipherAPIError",
+            "error_response": f"{response.text if response.text else response.reason}"
+        }
+        # Reformat response due to how codes are not returned properly
+        start_time: str = kwargs.pop('start_time')
+        response = create_error_response(error=error,
+                                         status_code=response.status_code,
+                                         start_time=convert_to_epoch(date=start_time),
+                                         end_time=datetime.datetime.utcnow().timestamp(),
+                                         **kwargs)
+        return_response = {**error_message, **standard_request(request=response, start_time=start_time, **kwargs)}
+        cipher_log.error(splunk_format(source="ciphertrust-sdk",**{**return_response["response_statistics"], **return_response["request_parameters"], **error_message})) # type: ignore
+    cipher_log.debug(splunk_format(**return_response))
+    return return_response

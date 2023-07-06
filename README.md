@@ -447,6 +447,32 @@ This operation searches for keys stored on the CipherTrust Manager. The operatio
 
 </p></details>
 
+## Logging & Streaming
+
+Set up local logging for any commands exectued within this SDK for tracking and debug as well as providing readable metrics. By default there is no log file created and only logs are streamed to the console screen in a default color scheme with level set to INFO. To adjust you must provide a yaml configuration file called __ciphertrust-sdk.yaml__ in one of two locations:
+
+1. __\<USERHOME\>__/.config/ciphertrust-sdk.yaml
+1. /etc/ciphertrust-sdk.yaml
+
+__Configuration File Example:__
+
+```yaml
+LOGDIR: "/var/logs"
+LOGSTREAM: true
+LOGSET: true
+LOGNAME: "ciphertrust_sdk.log"
+LOGFILE: true
+LOGLEVEL: "DEBUG"
+LOGMAXBYTES: 10485760
+LOGBACKUPCOUNT: 10
+```
+
+If logfile is set to true without specifying a __LOGDIR__ the log file will check the operating system and set up the log directory in the expected default location:
+
+1. Windows: /tmp
+1. MacOS: ~/Library/Logs/
+1. Linux: /var/log/
+
 ## Version
 
 | Version | Build | Changes |
@@ -460,8 +486,10 @@ This operation searches for keys stored on the CipherTrust Manager. The operatio
 | __1.0.4__ | __final__ | See notes below |
 | __1.0.5__ | __final__ | Fixed bug passing directory param in downloads call |
 | __1.0.6__ | __final__ | HOTFIX with generic call |
-| __1.0.6__ | __hotfix__ | Fixes issues with not raising proper errors when params are being passed |
-| __1.0.6__ | __feature__ | Adjusted and tested remaining http calls; see notes for details |
+| __1.0.7__ | __hotfix__ | Fixes issues with not raising proper errors when params are being passed |
+| __1.0.7__ | __feature__ | Adjusted and tested remaining http calls; see notes for details |
+| __1.0.7__ | __feature__ | Adjusted responses for all types of API calls |
+| __1.0.8__ | __a1__ | Added Error Response handling to ensure metrics in responses and error reporting; reformated logging messages and added splunk style logs with color responses |
 
 ### Known Bugs/Futue Features
 
@@ -479,6 +507,14 @@ __TODO:__
 
 #### Release Notes
 
+#### v1.0.8
+
+* Changed all timestamps to utc epoch float.
+* Updated formatting of logging.
+* Added easy_logger to help processs on screen and rotating log formats.
+* Added configuration for logger through a yaml configuration file.
+* Sets a default logger configuration if one isn't supplied in a config location area.
+
 #### v1.0.7
 
 * Issues when parsing response depending on call done with GET due to parameters not being stripped out.
@@ -492,6 +528,7 @@ __TODO:__
   * Due to this all exec_time_end and exec_time_start times need to be parsed and converted properly to be able to make correct time calls.
 * Adjusted requests.headers response to ensure no Dict issues are raised.
 * Added status code to response to bundle into the response as with the different calls there are different OK codes that can designate the proper changes.
+* Removed raising HTTP Error or CipherTrustAPI Error and send back an error message response for digestion on the other side.
 
 #### v1.0.6
 

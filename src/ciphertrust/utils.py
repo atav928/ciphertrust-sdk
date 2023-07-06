@@ -3,10 +3,17 @@
 import datetime
 from typing import Dict, Any
 from pathlib import Path
+import time
+from urllib import parse
+from collections import OrderedDict
+import re
 
 import validators
+from requests.models import Response
+import orjson
 
 from ciphertrust.exceptions import CipherValueError
+from ciphertrust.static import ENCODE
 
 
 def concat_resources(dict1, dict2) -> list[dict[str, Any]]:  # type: ignore
@@ -91,7 +98,7 @@ def set_user_cert(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
     :return: _description_
     :rtype: Dict[str,Any]
     """
-    response: Dict[str,Any] = {}
+    response: Dict[str, Any] = {}
     try:
         # TODO: Confirm tuple value for (cert,key)
         response["cert"] = kwargs["cert"]
@@ -226,6 +233,7 @@ def verify_path_exists(path_dir: str) -> bool:
     """
     return Path(path_dir).exists()
 
+
 def verify_file_exists(filename: str) -> None:
     """Verifies that a file being passed actually exists.
 
@@ -236,6 +244,7 @@ def verify_file_exists(filename: str) -> None:
     if not Path(filename).is_file():
         raise CipherValueError(f"Filen does not exist: {filename}")
 
+
 def return_time() -> str:
     """Gets the current time and returns it in isoformt UTC.
 
@@ -243,6 +252,74 @@ def return_time() -> str:
     :rtype: str
     """
     return f"{datetime.datetime.utcnow().isoformat()}Z"
+
+
+def convert_to_epoch(date: str) -> float:
+    """Convert the returned time in ISO format to epoch.
+
+    :param date: _description_
+    :type date: str
+    :return: _description_
+    :rtype: float
+    """
+    date = re.sub(r"Z", "", date, re.IGNORECASE)
+    return datetime.datetime.fromisoformat(date).timestamp()
+
+
+def create_error_response(error: str,
+                          status_code: int,
+                          start_time: float,
+                          end_time: float,
+                          **kwargs: Any) -> Response:
+    """Creates an error response when no response comes back from request instead of raising an error.
+
+    :param error: _description_
+    :type error: str
+    :param status_code: _description_
+    :type status_code: int
+    :param start_time: _description_
+    :type start_time: float
+    :param end_time: _description_
+    :type end_time: float
+    :return: _description_
+    :rtype: Response
+    """
+    response = Response()
+    response.encoding = ENCODE
+    content: dict[str, Any] = {
+        "hostname": parse.urlparse(kwargs["url"]).hostname,
+        "error": error,
+        "total": 0,
+        "request_parameters": {
+            "method": kwargs.get("method"),
+            "timeout": kwargs.get("timeout"),
+            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
+            "data": orjson.dumps(kwargs.get("data", {})).decode(ENCODE),  # pylint: disable=no-member
+            "verify": bool(kwargs.get("verify")),
+            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE)  # pylint: disable=no-member
+        }
+    }
+    response.status_code = status_code
+    response.url = f"https://{parse.urlparse(kwargs['url']).hostname}/"
+    response.elapsed = (datetime.datetime.fromtimestamp(
+        end_time) - datetime.datetime.fromtimestamp(start_time))
+    response.headers.update({
+        "Date": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time)),
+        "Content-Type": "application/json; charset=UTF-8",
+        "Access-Control-Allow-Headers": "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range",
+        "X-Processing-Time": f"{str(response.elapsed.total_seconds())}",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Expires": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time+kwargs["timeout"])),
+        "Access-Control-Expose-Headers": "Content-Length,Content-Range",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Cache-Control": "no-cache",
+        "X-Krakend": "Version undefined",
+        "X-Krakend-Completed": "false",
+        "Link": kwargs["url"]})
+    response._content = orjson.dumps(content)  # pylint: disable=no-member,protected-access
+    return response
+
 
 if __name__ == "__main__":
     valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]
