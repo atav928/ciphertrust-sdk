@@ -493,6 +493,7 @@ If logfile is set to true without specifying a __LOGDIR__ the log file will chec
 | __1.0.8__ | __a2__ | Added a 30s buffer to expiration of Auth Token |
 | __1.0.8__ | __a3__ | Synced error and standard format json response under response_statistics and request_parmeters |
 | __1.0.8__ | __final__ | Formated responses to return statatics on calls as well as data from call being made |
+| __1.0.9__ | __final__ | Added dependencies to requirements to fix installation issues |
 
 ### Known Bugs/Futue Features
 
@@ -509,6 +510,10 @@ __TODO:__
 * &#9745; Create a download method to handle downlaoding files
 
 #### Release Notes
+
+#### v1.0.9
+
+* Fixed dependency issue.
 
 #### v1.0.8
 
