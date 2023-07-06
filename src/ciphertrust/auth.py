@@ -240,7 +240,9 @@ class Auth:
             self.exec_time_elapsed)
 
     def _update_token_info(self, response_json: Dict[str, Any]):
-        self.expiration = response_json["jwt_decode"]["exp"]
+        # subtract 30seconds from expiraqtion to allow for room in response.
+        self.expiration: float = (datetime.datetime.fromtimestamp(
+            response_json["jwt_decode"]["exp"]) - datetime.timedelta(seconds=30)).timestamp()
         self.issued_at = response_json["jwt_decode"]["iat"]
         self.refresh_token = response_json["refresh_token"]
         self.token = response_json["jwt"]

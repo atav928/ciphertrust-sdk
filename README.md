@@ -490,6 +490,7 @@ If logfile is set to true without specifying a __LOGDIR__ the log file will chec
 | __1.0.7__ | __feature__ | Adjusted and tested remaining http calls; see notes for details |
 | __1.0.7__ | __feature__ | Adjusted responses for all types of API calls |
 | __1.0.8__ | __a1__ | Added Error Response handling to ensure metrics in responses and error reporting; reformated logging messages and added splunk style logs with color responses |
+| __1.0.8__ | __a2__ | Added a 30s buffer to expiration of Auth Token |
 
 ### Known Bugs/Futue Features
 
