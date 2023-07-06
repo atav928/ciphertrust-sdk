@@ -4,8 +4,7 @@ import datetime
 from typing import Dict, Any
 from pathlib import Path
 import time
-from urllib import parse
-from collections import OrderedDict
+import urllib.parse
 import re
 
 import validators
@@ -287,10 +286,10 @@ def create_error_response(error: str,
     response = Response()
     response.encoding = ENCODE
     content: dict[str, Any] = {
-        "hostname": parse.urlparse(kwargs["url"]).hostname,
         "error": error,
         "total": 0,
         "request_parameters": {
+            "hostname": urllib.parse.urlparse(kwargs["url"]).hostname,
             "method": kwargs.get("method"),
             "timeout": kwargs.get("timeout"),
             "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
@@ -300,7 +299,7 @@ def create_error_response(error: str,
         }
     }
     response.status_code = status_code
-    response.url = f"https://{parse.urlparse(kwargs['url']).hostname}/"
+    response.url = f"https://{urllib.parse.urlparse(kwargs['url']).hostname}/"
     response.elapsed = (datetime.datetime.fromtimestamp(
         end_time) - datetime.datetime.fromtimestamp(start_time))
     response.headers.update({

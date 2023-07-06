@@ -40,26 +40,32 @@ def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
     :rtype: dict[str,Any]
     """
     start_time: float = convert_to_epoch(kwargs['start_time'])
-    headers: Any = json.loads(orjson.dumps(request.headers.__dict__["_store"]).decode(ENCODE)),  # pylint: disable=no-member
+    headers: Any = json.loads(orjson.dumps(request.headers.__dict__[
+                              "_store"]).decode(ENCODE)),  # pylint: disable=no-member
     json_response: dict[str, Any] = {
         "headers": headers,
         "response_statistics": {
+            "iterations": kwargs.get("iterations", 1),
             "status_code": request.status_code,
             "exec_time_total": request.elapsed.total_seconds(),
             "exec_time_elapsed": request.elapsed.total_seconds(),
             "exec_time_end": datetime.datetime.utcnow().timestamp(),
             "exec_time_start": start_time,
-            "x_proccessing_time": request.headers.get("X-Processing-Time"),
-            "url": request.url
+            "x_proccessing_time": float(request.headers.get("X-Processing-Time")) if request.headers.get("X-Processing-Time") else None,
         },
         "request_parameters": {
+            "hostname": urllib.parse.urlparse(request.url).hostname,
+            "url": request.url,
             "method": kwargs.get("method"),
             "timeout": kwargs.get("timeout"),
-            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE), # pylint: disable=no-member
+            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
             "verify": bool(kwargs.get("verify")),
-            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE) # pylint: disable=no-member
+            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE)  # pylint: disable=no-member
         }
     }
+    if len(kwargs.get("exec_time_elapsed_list", [])) > 1:
+        json_response["response_statistics"]["exec_time_stdev"] = statistics.stdev(
+            kwargs.get("exec_time_elapsed_list"))  # type: ignore
     return json_response
 
 
@@ -272,7 +278,6 @@ async def split_up_req(auth: Auth,
     return full_listed_resp  # type: ignore
 
 
-
 def build_responsde(full_listed_resp: list[dict[str, Any]]) -> dict[str, Any]:
     """Build Returned Reponse with statistics.
 
@@ -327,12 +332,15 @@ def api_raise_error(response: Response,
         "download": download_request,
         "delete": delete_request
     }
-    cipher_log.debug(splunk_format(**kwargs))
     try:
         response.raise_for_status()
         return_response = formats[method_type](response, **kwargs)
-        #print(return_response)
-        cipher_log.info(splunk_format(source="ciphertrust-sdk",message="CipherTrust API Request",**{**return_response["response_statistics"], **return_response["request_parameters"]}))
+        # print(return_response)
+        cipher_log.info(
+            splunk_format(
+                source="ciphertrust-sdk", message="CipherTrust API Request", **
+                {**return_response["response_statistics"],
+                 **return_response["request_parameters"]}))
     except (HTTPError) as err:
         error: str = reformat_exception(err)
         error_message = {
@@ -347,7 +355,14 @@ def api_raise_error(response: Response,
                                          start_time=convert_to_epoch(date=start_time),
                                          end_time=datetime.datetime.utcnow().timestamp(),
                                          **kwargs)
-        return_response = {**error_message, **standard_request(request=response, start_time=start_time, **kwargs)}
-        cipher_log.error(splunk_format(source="ciphertrust-sdk",**{**return_response["response_statistics"], **return_response["request_parameters"], **error_message})) # type: ignore
+        return_response = {
+            **error_message, **
+            standard_request(request=response, start_time=start_time, **kwargs)}
+        cipher_log.error(
+            splunk_format(
+                source="ciphertrust-sdk", **
+                {**return_response["response_statistics"],
+                 **return_response["request_parameters"],
+                 **error_message}))  # type: ignore
     cipher_log.debug(splunk_format(**return_response))
     return return_response
