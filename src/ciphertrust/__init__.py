@@ -1,12 +1,12 @@
 """Package Initialization"""
 
 import yaml
-from pathlib import Path
 
 import easy_logger
 
 from ciphertrust._version import __version__
-from ciphertrust.config import Configs, CONFIG_LOCATION
+from ciphertrust.config import Configs
+
 config = Configs()
 
 if config.YAML_CONFIG:
