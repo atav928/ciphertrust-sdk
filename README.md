@@ -493,7 +493,8 @@ If logfile is set to true without specifying a __LOGDIR__ the log file will chec
 | __1.0.8__ | __a2__ | Added a 30s buffer to expiration of Auth Token |
 | __1.0.8__ | __a3__ | Synced error and standard format json response under response_statistics and request_parmeters |
 | __1.0.8__ | __final__ | Formated responses to return statatics on calls as well as data from call being made |
-| __1.0.9__ | __final__ | Added dependencies to requirements to fix installation issues |
+| __1.0.9__ | __hotfix__ | Added dependencies to requirements to fix installation issues |
+| __1.0.10__ | __final__ | Added features and adjustments for auth timeout |
 
 ### Known Bugs/Futue Features
 
@@ -501,7 +502,7 @@ __TODO:__
 
 * &#9745; Create a metrics fucntion to return
 * &#9745; Delete all private aand passwords being printed
-* &#9744; Add logging or streaming or none
+* &#9745; Add logging or streaming or none
 * &#9744; Add own metrics
   * &#9744; Generic metrics wrapper
   * &#9744; Logging metrics wrapper
@@ -511,9 +512,8 @@ __TODO:__
 
 #### Release Notes
 
-#### v1.0.9
+#### v1.0.10
 
-* Adjusted time being returned to local time vs UTC.
 * Increased the length of time for a token by decresing the value used to compare the token is still valid from 30s to 15s.
 * Added _expiration_offset_ to AuthParams which is called in Auth class to allow for adjusting the token offset.
   * Value is set for float, but could take int.
@@ -521,8 +521,14 @@ __TODO:__
 
 __Bug Fix:__
 
-* Fixed dependency issue.
 * Fixed issue with Auth where there was an incorrect comparison in auth token forcing a creation of a new token each call.
+* Adjusted time being returned to local time vs UTC.
+
+#### v1.0.9
+
+__Bug Fix:__
+
+* Fixed dependency issue.
 
 #### v1.0.8
 
