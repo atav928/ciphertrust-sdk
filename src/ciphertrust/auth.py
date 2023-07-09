@@ -4,7 +4,6 @@
 from typing import Dict, Any
 import datetime
 import statistics
-from urllib3.exceptions import NameResolutionError
 # from urllib.parse import urlparse
 
 import jwt
@@ -18,7 +17,7 @@ from ciphertrust import config, logger
 from ciphertrust.static import ENCODE
 from ciphertrust.models import AuthParams
 from ciphertrust.utils import (create_error_response, default_payload,
-                               reformat_exception, return_time)
+                               reformat_exception, return_epoch, return_time)
 from ciphertrust.exceptions import (CipherAPIError, CipherAuthError, CipherValueError)
 
 cipher_log = logger.getLogger(__name__)
@@ -34,9 +33,10 @@ class Auth:
     :rtype: Auth
     """
     method: str = "POST"
+    message: str
     connection: str
     issued_at: int
-    expiration: int
+    expiration: float
     refresh_token_id: str
     refresh_token: str
     token: str
@@ -52,7 +52,8 @@ class Auth:
     exec_time_end: list[str] = []
     duration: int = 240
     refresh_params: Dict[str, Any] = {}
-    _response = None
+    _expiration_offset: float = 15.0
+    _response: Response
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         authparams: Dict[str, Any] = AuthParams(**kwargs).asdict()  # type: ignore
@@ -63,6 +64,8 @@ class Auth:
             self.verify: Any = authparams.pop("verify")
             self.headers: Dict[str, Any] = authparams.pop("headers")
             self.__renew_refresh_token: bool = authparams.pop("renew_refresh_token", False)
+            self._expiration_offset: float = authparams.pop(
+                "expiration_offset", self._expiration_offset)
         except KeyError as err:
             error: str = reformat_exception(err)
             raise CipherValueError(f"Invalid value: {error}")
@@ -99,15 +102,15 @@ class Auth:
         :return: _description_
         :rtype: Dict[str,Any]
         """
+        self.message = ""
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
-        start_time: float = datetime.datetime.utcnow().timestamp()
+        start_time: float = return_epoch()
         self.exec_time_start.append(return_time())
         try:
             response: Response = self._request(data=data)
         except (Exception) as err:
-            end_time = datetime.datetime.utcnow().timestamp()
-            self._update_exec_time(exec_time=(datetime.datetime.fromtimestamp(
-                end_time) - datetime.datetime.fromtimestamp(start_time)))  # type: ignore
+            end_time = return_epoch()
+            self._update_exec_time(exec_time=(end_time - start_time))
             error = reformat_exception(err)
             error_message = {
                 "error": error,
@@ -122,9 +125,10 @@ class Auth:
             return None
         self.exec_time_end.append(return_time())
         try:
-            self.api_raise_error(response)
+            # self.api_raise_error(response)
+            response.raise_for_status()
             self._update_exec_time(response.elapsed.total_seconds())
-            end_time = datetime.datetime.utcnow().timestamp()
+            end_time = return_epoch()
             cipher_log.info(
                 splunk_format(
                     source="ciphertrust-sdk",
@@ -133,7 +137,7 @@ class Auth:
                     exec_time_total=response.elapsed.total_seconds(),
                     exec_time_elapsed=self.exec_time_elapsed[-1],
                     exec_time_end=end_time, exec_time_start=start_time,
-                    x_proccessing_time=response.headers.get("X-Processing-Time"),
+                    x_processing_time=response.headers.get("X-Processing-Time"),
                     url=self.url))
         except (HTTPError) as err:
             self._update_exec_time(response.elapsed.total_seconds())
@@ -157,20 +161,23 @@ class Auth:
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
         self._update_token_info(response_json=response_json)
+        self.message = "Generated Auth Token"
+        self._response = response
 
     def gen_refresh_token(self) -> None:
-        payload: Dict[str, Any] = self._create_payload(self.refresh_authparams.asdict())
-        data: str = orjson.dumps(payload).decode(ENCODE)  # pylint: disable=no-member
+        self.message: str = ""
+        self.payload: Dict[str, Any] = self._create_payload(self.refresh_authparams.asdict())
+        data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
         self.exec_time_start.append(return_time())
-        start_time = datetime.datetime.utcnow().timestamp()
+        start_time = return_epoch()
         response: Response = self._request(data=data)
         self.exec_time_end.append(return_time())
-        end_time = datetime.datetime.utcnow().timestamp()
-        # print(f"response_code{response.status_code}|response={response.json()}")
+        end_time = return_epoch()
         try:
-            self.api_raise_error(response=response)
+            # self.api_raise_error(response=response)
+            response.raise_for_status()
             self._update_exec_time(response.elapsed.total_seconds())
-            end_time = datetime.datetime.utcnow().timestamp()
+            end_time = return_epoch()
             cipher_log.info(
                 splunk_format(
                     source="ciphertrust-sdk",
@@ -179,7 +186,7 @@ class Auth:
                     exec_time_total=response.elapsed.total_seconds(),
                     exec_time_elapsed=self.exec_time_elapsed[-1],
                     exec_time_end=end_time, exec_time_start=start_time,
-                    x_proccessing_time=response.headers.get("X-Processing-Time"),
+                    x_processing_time=response.headers.get("X-Processing-Time"),
                     url=self.url))
         except (HTTPError, CipherAuthError) as err:
             self._update_exec_time(response.elapsed.total_seconds())
@@ -203,16 +210,16 @@ class Auth:
         response_json: Dict[str, Any] = response.json()
         response_json["jwt_decode"] = jwt_decode
         self._update_token_info(response_json=response_json)
+        self.message: str = "Generated Refresh Token"
+        self._response = response
 
     def _create_error_response(
             self, error: str, status_code: int, start_time: float, error_message: dict[str, str]):
-        end_time = datetime.datetime.utcnow().timestamp()
-        response: Response = create_error_response(error=error,
-                                                   status_code=status_code,
-                                                   start_time=start_time,
-                                                   end_time=end_time,
-                                                   url=self.url,
-                                                   timeout=self.timeout)
+        end_time = return_epoch()
+        response: Response = create_error_response(
+            error=error, status_code=status_code, start_time=start_time, end_time=end_time,
+            url=self.url, timeout=self.timeout,
+            params={"grant_type": self.payload.get("grant_type")})
         cipher_log.error(
             splunk_format(
                 source="ciphertrust-sdk",
@@ -220,7 +227,7 @@ class Auth:
                 exec_time_total=response.elapsed.total_seconds(),
                 exec_time_elapsed=self.exec_time_elapsed[-1],
                 exec_time_end=end_time, exec_time_start=start_time,
-                x_proccessing_time=response.headers.get("X-Processing-Time"),
+                x_processing_time=response.headers.get("X-Processing-Time"),
                 url=self.url,
                 **error_message))
         return response
@@ -240,9 +247,9 @@ class Auth:
             self.exec_time_elapsed)
 
     def _update_token_info(self, response_json: Dict[str, Any]):
-        # subtract 30seconds from expiraqtion to allow for room in response.
+        # subtract 15seconds from expiraqtion to allow for room in response.
         self.expiration: float = (datetime.datetime.fromtimestamp(
-            response_json["jwt_decode"]["exp"]) - datetime.timedelta(seconds=30)).timestamp()
+            response_json["jwt_decode"]["exp"]) - datetime.timedelta(seconds=self._expiration_offset)).timestamp()
         self.issued_at = response_json["jwt_decode"]["iat"]
         self.refresh_token = response_json["refresh_token"]
         self.token = response_json["jwt"]
@@ -268,6 +275,16 @@ class Auth:
                                               timeout=self.timeout,
                                               verify=self.verify)
         return response
+
+    @property
+    def expiration_offset(self):
+        return self._expiration_offset
+
+    @expiration_offset.setter
+    def expiration_offset(self, value: float):
+        if value < 0:
+            raise CipherValueError("Expiration Offset cannot be negative")
+        self._expiration_offset = value
 
     @property
     def response(self):
@@ -298,7 +315,7 @@ class Auth:
 def refresh_token(decorated):  # type: ignore
     def wrapper(auth: Auth, **kwargs: Dict[str, Any]) -> Any:
         try:
-            if datetime.datetime.utcnow().timestamp() >= auth.expiration:
+            if datetime.datetime.now().timestamp() >= auth.expiration:
                 auth.gen_refresh_token()
         except KeyError:
             raise CipherAuthError(f"Invalid Authorization {auth}")

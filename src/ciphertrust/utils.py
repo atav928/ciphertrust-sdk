@@ -1,11 +1,13 @@
 """Utilities"""
 
 import datetime
+import statistics
 from typing import Dict, Any
 from pathlib import Path
 import time
 import urllib.parse
 import re
+import json
 
 import validators
 from requests.models import Response
@@ -252,6 +254,21 @@ def return_time() -> str:
     """
     return f"{datetime.datetime.utcnow().isoformat()}Z"
 
+def return_time_utc() -> str:
+    """Gets the current time and returns it in isoformt UTC.
+
+    :return: _description_
+    :rtype: str
+    """
+    return f"{datetime.datetime.utcnow().isoformat()}Z"
+
+def return_epoch() -> float:
+    """Return current system time in epoch without any timezone info.
+
+    :return: current system epoch time
+    :rtype: float
+    """
+    return datetime.datetime.now().timestamp()
 
 def convert_to_epoch(date: str) -> float:
     """Convert the returned time in ISO format to epoch.
@@ -319,6 +336,42 @@ def create_error_response(error: str,
     response._content = orjson.dumps(content)  # pylint: disable=no-member,protected-access
     return response
 
+def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
+    """Reformat request.
+
+    :param response: _description_
+    :type response: Response
+    :return: _description_
+    :rtype: dict[str,Any]
+    """
+    start_time: float = convert_to_epoch(kwargs['start_time'])
+    headers: Any = json.loads(orjson.dumps(request.headers.__dict__[
+                              "_store"]).decode(ENCODE)),  # pylint: disable=no-member
+    json_response: dict[str, Any] = {
+        "headers": headers,
+        "response_statistics": {
+            "iterations": kwargs.get("iterations", 1),
+            "status_code": request.status_code,
+            "exec_time_total": request.elapsed.total_seconds(),
+            "exec_time_elapsed": request.elapsed.total_seconds(),
+            "exec_time_end": datetime.datetime.utcnow().timestamp(),
+            "exec_time_start": start_time,
+            "x_processing_time": float(request.headers.get("X-Processing-Time")) if request.headers.get("X-Processing-Time") else None,
+        },
+        "request_parameters": {
+            "hostname": urllib.parse.urlparse(request.url).hostname,
+            "url": request.url,
+            "method": kwargs.get("method"),
+            "timeout": kwargs.get("timeout"),
+            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
+            "verify": bool(kwargs.get("verify")),
+            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE)  # pylint: disable=no-member
+        }
+    }
+    if len(kwargs.get("exec_time_elapsed_list", [])) > 1:
+        json_response["response_statistics"]["exec_time_stdev"] = statistics.stdev(
+            kwargs.get("exec_time_elapsed_list"))  # type: ignore
+    return json_response
 
 if __name__ == "__main__":
     valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]

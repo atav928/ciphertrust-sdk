@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Optional, cast
 from dataclasses import dataclass, field, fields
 import orjson
 
-from ciphertrust.static import DEFAULT_HEADERS, DEFAULT_TIMEOUT, ENCODE, VALID_METHODS, VALUES
+from ciphertrust.static import (DEFAULT_HEADERS, DEFAULT_TIMEOUT, ENCODE, VALID_METHODS, GRANT_VALUES)
 from ciphertrust.exceptions import CipherValueError
 from ciphertrust.utils import validate_domain, verify_file_exists
 
@@ -53,7 +53,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
 
     def __post_init__(self) -> None:
         """Verify correct values for: 'grant_type', 'hostname', 'verify'"""
-        if self.grant_type not in VALUES:
+        if self.grant_type not in GRANT_VALUES:
             raise CipherValueError(f"Invalid grant type: {self.grant_type=}")
         if not any([isinstance(self.verify, bool), isinstance(self.verify, str)]):
             raise CipherValueError(f"Invalid value: {self.verify=}")
@@ -138,7 +138,7 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
     timeout: Any = DEFAULT_TIMEOUT
     params: Optional[dict[str, Any]] = NONETYPE
     data: Optional[str] = NONETYPE
-    json: Optional[dict[str,Any]] = NONETYPE
+    json: Optional[dict[str, Any]] = NONETYPE
     headers: Dict[str, Any] = default_field(DEFAULT_HEADERS)
     cookies: Optional[dict[str, Any]] = NONETYPE
     files: Optional[dict[str, Any]] = NONETYPE
@@ -212,7 +212,8 @@ if __name__ == "__main__":
             "Content-Type": "application/json",
             "Accept": "application/json"
         },
-        "ext": "value"
+        "ext": "value",
+        "expiration_offset": 8.0
     }
     req_sample: dict[str, Any] = {"url": "https://example.com/",
                                   "method": "GET", "verify": False, "invalid_param": "somestring"}

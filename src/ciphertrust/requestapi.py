@@ -25,48 +25,11 @@ from ciphertrust.auth import (Auth, refresh_token)  # type: ignore
 from ciphertrust.exceptions import (CipherMissingParam)
 from ciphertrust.static import (DEFAULT_HEADERS, ENCODE, REGEX_NUM,
                                 DEFAULT_LIMITS_OVERRIDE, DEFAULT_TIMEOUT_CONFIG_OVERRIDE)
-from ciphertrust.utils import (convert_to_epoch, reformat_exception, concat_resources,  # type: ignore
-                               verify_path_exists, return_time, create_error_response)
+from ciphertrust.utils import (
+    convert_to_epoch, format_request, reformat_exception, concat_resources, verify_path_exists,
+    return_time, create_error_response)
 
 cipher_log = logger.getLogger(__name__)
-
-
-def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
-    """Reformat request.
-
-    :param response: _description_
-    :type response: Response
-    :return: _description_
-    :rtype: dict[str,Any]
-    """
-    start_time: float = convert_to_epoch(kwargs['start_time'])
-    headers: Any = json.loads(orjson.dumps(request.headers.__dict__[
-                              "_store"]).decode(ENCODE)),  # pylint: disable=no-member
-    json_response: dict[str, Any] = {
-        "headers": headers,
-        "response_statistics": {
-            "iterations": kwargs.get("iterations", 1),
-            "status_code": request.status_code,
-            "exec_time_total": request.elapsed.total_seconds(),
-            "exec_time_elapsed": request.elapsed.total_seconds(),
-            "exec_time_end": datetime.datetime.utcnow().timestamp(),
-            "exec_time_start": start_time,
-            "x_proccessing_time": float(request.headers.get("X-Processing-Time")) if request.headers.get("X-Processing-Time") else None,
-        },
-        "request_parameters": {
-            "hostname": urllib.parse.urlparse(request.url).hostname,
-            "url": request.url,
-            "method": kwargs.get("method"),
-            "timeout": kwargs.get("timeout"),
-            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
-            "verify": bool(kwargs.get("verify")),
-            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE)  # pylint: disable=no-member
-        }
-    }
-    if len(kwargs.get("exec_time_elapsed_list", [])) > 1:
-        json_response["response_statistics"]["exec_time_stdev"] = statistics.stdev(
-            kwargs.get("exec_time_elapsed_list"))  # type: ignore
-    return json_response
 
 
 def standard_request(request: Response, **kwargs: Any) -> dict[str, Any]:

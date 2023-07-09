@@ -513,7 +513,16 @@ __TODO:__
 
 #### v1.0.9
 
+* Adjusted time being returned to local time vs UTC.
+* Increased the length of time for a token by decresing the value used to compare the token is still valid from 30s to 15s.
+* Added _expiration_offset_ to AuthParams which is called in Auth class to allow for adjusting the token offset.
+  * Value is set for float, but could take int.
+  * Cannot use a negative number as that will cause an issue.
+
+__Bug Fix:__
+
 * Fixed dependency issue.
+* Fixed issue with Auth where there was an incorrect comparison in auth token forcing a creation of a new token each call.
 
 #### v1.0.8
 

@@ -2,11 +2,10 @@
 
 from typing import Any, Dict
 from httpx import Limits, Timeout
-from pathlib import Path
 
 
 ENCODE: str = "utf-8"
-VALUES: list[str] = ["password", "refresh_token", "user_certificate", "client_credential"]
+GRANT_VALUES: list[str] = ["password", "refresh_token", "user_certificate", "client_credential"]
 DEFAULT_HEADERS: Dict[str,Any] = {
     "Content-Type": "application/json"
 }
