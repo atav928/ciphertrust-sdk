@@ -1,3 +1,4 @@
+# pylint: disable=line-too-long
 """Utilities"""
 
 import datetime
@@ -262,12 +263,14 @@ def return_time_utc() -> str:
     """
     return f"{datetime.datetime.utcnow().isoformat()}Z"
 
-def return_epoch() -> float:
+def return_epoch(utc: bool=False) -> float:
     """Return current system time in epoch without any timezone info.
 
     :return: current system epoch time
     :rtype: float
     """
+    if utc:
+        return datetime.datetime.utcnow().timestamp()
     return datetime.datetime.now().timestamp()
 
 def convert_to_epoch(date: str) -> float:
@@ -302,11 +305,12 @@ def create_error_response(error: str,
     """
     response = Response()
     response.encoding = ENCODE
+    utc_time_diff: float = datetime.datetime.utcnow().timestamp() - datetime.datetime.now().timestamp()
     content: dict[str, Any] = {
         "error": error,
         "total": 0,
         "request_parameters": {
-            "hostname": urllib.parse.urlparse(kwargs["url"]).hostname,
+            "hostname": urllib.parse.urlparse(kwargs["url"]).hostname, # type: ignore
             "method": kwargs.get("method"),
             "timeout": kwargs.get("timeout"),
             "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
@@ -316,17 +320,17 @@ def create_error_response(error: str,
         }
     }
     response.status_code = status_code
-    response.url = f"https://{urllib.parse.urlparse(kwargs['url']).hostname}/"
+    response.url = f"https://{urllib.parse.urlparse(kwargs['url']).hostname}/" # type: ignore
     response.elapsed = (datetime.datetime.fromtimestamp(
         end_time) - datetime.datetime.fromtimestamp(start_time))
     response.headers.update({
-        "Date": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time)),
+        "Date": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time + utc_time_diff)),
         "Content-Type": "application/json; charset=UTF-8",
         "Access-Control-Allow-Headers": "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range",
-        "X-Processing-Time": f"{str(response.elapsed.total_seconds())}",
+        "X-Processing-Time": f"{str(abs(response.elapsed.total_seconds()))}",
         "Transfer-Encoding": "chunked",
         "Connection": "keep-alive",
-        "Expires": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time+kwargs["timeout"])),
+        "Expires": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime((start_time+utc_time_diff)+kwargs["timeout"])),
         "Access-Control-Expose-Headers": "Content-Length,Content-Range",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Cache-Control": "no-cache",
@@ -344,9 +348,9 @@ def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
     :return: _description_
     :rtype: dict[str,Any]
     """
-    start_time: float = convert_to_epoch(kwargs['start_time'])
-    headers: Any = json.loads(orjson.dumps(request.headers.__dict__[
-                              "_store"]).decode(ENCODE)),  # pylint: disable=no-member
+    start_time: float = kwargs['start_time']  # convert_to_epoch(kwargs['start_time'])
+    headers: Any = json.loads(orjson.dumps(request.headers.__dict__[ # pylint: disable=no-member
+                              "_store"]).decode(ENCODE)),
     json_response: dict[str, Any] = {
         "headers": headers,
         "response_statistics": {
@@ -354,7 +358,7 @@ def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
             "status_code": request.status_code,
             "exec_time_total": request.elapsed.total_seconds(),
             "exec_time_elapsed": request.elapsed.total_seconds(),
-            "exec_time_end": datetime.datetime.utcnow().timestamp(),
+            "exec_time_end": return_epoch(), # datetime.datetime.utcnow().timestamp(),
             "exec_time_start": start_time,
             "x_processing_time": float(request.headers.get("X-Processing-Time")) if request.headers.get("X-Processing-Time") else None,
         },

@@ -495,6 +495,7 @@ If logfile is set to true without specifying a __LOGDIR__ the log file will chec
 | __1.0.8__ | __final__ | Formated responses to return statatics on calls as well as data from call being made |
 | __1.0.9__ | __hotfix__ | Added dependencies to requirements to fix installation issues |
 | __1.0.10__ | __final__ | Added features and adjustments for auth timeout |
+| __1.0.11__ | __final__ | Fixed issues with processing time and timezones |
 
 ### Known Bugs/Futue Features
 
@@ -509,8 +510,21 @@ __TODO:__
 * &#9745; Create an average, mean, total time depending on calls being made for when you want to do a full list of keys
 * &#9745; Missing delete https action
 * &#9745; Create a download method to handle downlaoding files
+* &#9745; Error in calucation for x_processing_time for a HTTP Error code ex: error="HTTPError: 422 Client Error: Unprocessable Entity,exec_time_elapsed="-14399.518375",exec_time_end="1689378714.406082",exec_time_start="1689378713.924067",exec_time_total="-14399.518375",x_processing_time="-14399.518375"
+* &#9744; Documentation states return response should be JSON, but sometimes POST will return plain/text. Need to append "Accept": "application/json" to force a json response.
+  * &#9744; Build out handle method for a text return if json obj is not returned.
+* &#9744; remove statistics if not necessary for standard interacations.
+
+__Known Bugs:__
+
+* Issues with usability of code, needs reformating to make both useful and return statistics.
+* unable to get post response when decrypting data.
 
 #### Release Notes
+
+#### v1.0.11
+
+* Fixed issue with error returning negative processing time.
 
 #### v1.0.10
 
@@ -518,6 +532,7 @@ __TODO:__
 * Added _expiration_offset_ to AuthParams which is called in Auth class to allow for adjusting the token offset.
   * Value is set for float, but could take int.
   * Cannot use a negative number as that will cause an issue.
+* Migrated to use current time and convert to GMT when necessary.
 
 __Bug Fix:__
 
