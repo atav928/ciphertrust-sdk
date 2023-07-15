@@ -13,7 +13,7 @@ DEFAULT_LIMITS_OVERRIDE = Limits(max_connections=100, max_keepalive_connections=
 DEFAULT_TIMEOUT_CONFIG_OVERRIDE = Timeout(timeout=None)
 DEFAULT_TIMEOUT: float = 60.0
 
-REQUEST_VALID_PARAMS: dict[str,Any] = { 
+REQUEST_VALID_PARAMS: dict[str,Any] = {
     "required": ["url", ],
     "optional": ["params", "data", "json", "headers", "cookies", "files" ]
 }
