@@ -6,7 +6,7 @@ import orjson
 from requests import Response
 
 from ciphertrust import config
-from ciphertrust.utils import return_time
+from ciphertrust.utils import return_epoch
 from ciphertrust.models import RequestParams
 from ciphertrust.auth import Auth
 from ciphertrust.requestapi import (api_raise_error, ctm_request)
@@ -90,7 +90,7 @@ class Get:
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs).asdict()
-        start_time: str = return_time()
+        start_time: float = return_epoch()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_get_kwargs)  # type: ignore
         self._response = req
         if save_dir:
@@ -136,7 +136,7 @@ class Post:
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs).asdict()
-        start_time: str = return_time()
+        start_time: float = return_epoch()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_post_kwargs)  # type:ignore
         self._response = req
         return api_raise_error(
@@ -179,7 +179,7 @@ class Delete:
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
             **kwargs).asdict()
-        start_time: str = return_time()
+        start_time: float = return_epoch()
         # Returns Status Code 204 without any content
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_delete_kwargs)  # type:ignore
         self._response = req
@@ -224,7 +224,7 @@ class Patch:
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
             **kwargs).asdict()
-        start_time: str = return_time()
+        start_time: float = return_epoch()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_patch_kwargs)  # type:ignore
         self._response = req
         return api_raise_error(

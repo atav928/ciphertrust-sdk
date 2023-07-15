@@ -26,7 +26,7 @@ from ciphertrust.exceptions import (CipherMissingParam)
 from ciphertrust.static import (DEFAULT_HEADERS, ENCODE, REGEX_NUM,
                                 DEFAULT_LIMITS_OVERRIDE, DEFAULT_TIMEOUT_CONFIG_OVERRIDE)
 from ciphertrust.utils import (
-    convert_to_epoch, format_request, reformat_exception, concat_resources, verify_path_exists,
+    format_request, reformat_exception, concat_resources, return_epoch, verify_path_exists,
     return_time, create_error_response)
 
 cipher_log = logger.getLogger(__name__)
@@ -175,7 +175,7 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
     """
     # inital response
     kwargs["params"] = {"limit": 1}
-    start_time: str = return_time()
+    start_time: float = return_epoch()
     resp: dict[str, Any] = ctm_request(auth=auth, **kwargs)
     limit: int = 1000
     total: int = resp["total"]
@@ -201,8 +201,8 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
         iterations -= 10
         # print(f"One loop iteration completed new_iterations={iterations}")
     response = {**response, **build_responsde(full_listed_resp=full_listed_resp)}  # type: ignore
-    response["exec_time_total"] = (parser.isoparse(
-        response["exec_time_end"]) - parser.isoparse(start_time)).total_seconds()
+    response["exec_time_total"] = (datetime.datetime.fromtimestamp(
+        return_epoch()) - datetime.datetime.fromtimestamp(start_time))
     response["exec_time_start"] = start_time
     return response
 
@@ -312,11 +312,11 @@ def api_raise_error(response: Response,
             "error_response": f"{response.text if response.text else response.reason}"
         }
         # Reformat response due to how codes are not returned properly
-        start_time: str = kwargs.pop('start_time')
+        start_time: float = kwargs.pop('start_time')
         response = create_error_response(error=error,
                                          status_code=response.status_code,
-                                         start_time=convert_to_epoch(date=start_time),
-                                         end_time=datetime.datetime.utcnow().timestamp(),
+                                         start_time=start_time, # convert_to_epoch(date=start_time),
+                                         end_time=return_epoch(),
                                          **kwargs)
         return_response = {
             **error_message, **
@@ -324,8 +324,8 @@ def api_raise_error(response: Response,
         cipher_log.error(
             splunk_format(
                 source="ciphertrust-sdk", **
-                {**return_response["response_statistics"],
-                 **return_response["request_parameters"],
+                {**return_response["response_statistics"], # type: ignore
+                 **return_response["request_parameters"], # type: ignore
                  **error_message}))  # type: ignore
     cipher_log.debug(splunk_format(**return_response))
     return return_response
