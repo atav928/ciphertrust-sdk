@@ -527,6 +527,7 @@ __Known Bugs:__
 
 * Changed Start/End auth times to epoch.
 * Updated requirements file.
+* Added Iterations tracking in auth.
 
 #### v1.0.11
 
