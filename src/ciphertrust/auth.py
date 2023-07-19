@@ -17,7 +17,7 @@ from ciphertrust import config, logger
 from ciphertrust.static import ENCODE
 from ciphertrust.models import AuthParams
 from ciphertrust.utils import (create_error_response, default_payload,
-                               reformat_exception, return_epoch, return_time)
+                               reformat_exception, return_epoch)
 from ciphertrust.exceptions import (CipherAPIError, CipherAuthError, CipherValueError)
 
 cipher_log = logger.getLogger(__name__)
@@ -48,16 +48,16 @@ class Auth:
     exec_time_min: float = 0.0
     exec_time_max: float = 0.0
     exec_time_total: float = 0.0
-    exec_time_start: list[str] = []
-    exec_time_end: list[str] = []
+    exec_time_start: list[float] = []
+    exec_time_end: list[float] = []
     duration: int = 240
     refresh_params: Dict[str, Any] = {}
+    iterations: int = 0
     _expiration_offset: float = 15.0
     _response: Response
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         authparams: Dict[str, Any] = AuthParams(**kwargs).asdict()  # type: ignore
-        # print(f"{authparams=}")
         try:
             self.hostname: str = authparams.pop("hostname")
             self.timeout: int = authparams.pop("timeout")
@@ -71,7 +71,6 @@ class Auth:
             raise CipherValueError(f"Invalid value: {error}")
         self.payload: Dict[str, Any] = self._create_payload(authparams)
         self.url: str = config.AUTH.format(self.hostname)
-        # print(f"{self.url}")
         self.gen_token()
 
     @property
@@ -85,9 +84,7 @@ class Auth:
         self.__renew_refresh_token = value
 
     def _create_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        # print(f"{payload=}")
         response: Dict[str, Any] = default_payload(**payload)
-        # print(f"createdpayload={response}")
         return response
 
     def _jwt_decode(self, jwt_token: str) -> Dict[str, Any]:
@@ -105,7 +102,7 @@ class Auth:
         self.message = ""
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
         start_time: float = return_epoch()
-        self.exec_time_start.append(return_time())
+        self.exec_time_start.append(return_epoch())
         try:
             response: Response = self._request(data=data)
         except (Exception) as err:
@@ -123,9 +120,8 @@ class Auth:
                                                    error_message=error_message)
             self._response = response
             return None
-        self.exec_time_end.append(return_time())
+        self.exec_time_end.append(return_epoch())
         try:
-            # self.api_raise_error(response)
             response.raise_for_status()
             self._update_exec_time(response.elapsed.total_seconds())
             end_time = return_epoch()
@@ -153,7 +149,6 @@ class Auth:
                                                    error_message=error_message)
             self._response = response
             return None
-            # raise CipherAuthError(error)
         try:
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
@@ -168,10 +163,10 @@ class Auth:
         self.message: str = ""
         self.payload: Dict[str, Any] = self._create_payload(self.refresh_authparams.asdict())
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
-        self.exec_time_start.append(return_time())
+        self.exec_time_start.append(return_epoch())
         start_time = return_epoch()
         response: Response = self._request(data=data)
-        self.exec_time_end.append(return_time())
+        self.exec_time_end.append(return_epoch())
         end_time = return_epoch()
         try:
             # self.api_raise_error(response=response)
@@ -227,7 +222,7 @@ class Auth:
                 exec_time_total=response.elapsed.total_seconds(),
                 exec_time_elapsed=self.exec_time_elapsed[-1],
                 exec_time_end=end_time, exec_time_start=start_time,
-                x_processing_time=response.headers.get("X-Processing-Time"),
+                x_processing_time=response.headers.get("X-Processing-Time", None),
                 url=self.url,
                 **error_message))
         return response
@@ -242,9 +237,8 @@ class Auth:
         self.exec_time_elapsed.append(exec_time)
         self.exec_time_min = min(self.exec_time_elapsed)
         self.exec_time_max = max(self.exec_time_elapsed)
-        self.exec_time_stdev = 0.0 if len(
-            self.exec_time_elapsed) <= 1 else statistics.stdev(
-            self.exec_time_elapsed)
+        self.exec_time_stdev = None if len(self.exec_time_elapsed) <= 1 else statistics.stdev(self.exec_time_elapsed) # type: ignore
+        self.iterations = len(self.exec_time_elapsed)
 
     def _update_token_info(self, response_json: Dict[str, Any]):
         # subtract 15seconds from expiraqtion to allow for room in response.
