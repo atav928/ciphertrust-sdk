@@ -496,6 +496,7 @@ If logfile is set to true without specifying a __LOGDIR__ the log file will chec
 | __1.0.9__ | __hotfix__ | Added dependencies to requirements to fix installation issues |
 | __1.0.10__ | __final__ | Added features and adjustments for auth timeout |
 | __1.0.11__ | __final__ | Fixed issues with processing time and timezones |
+| __1.0.12__ | __final__ | Migrated auth end and start times to epoch |
 
 ### Known Bugs/Futue Features
 
@@ -521,6 +522,11 @@ __Known Bugs:__
 * unable to get post response when decrypting data.
 
 #### Release Notes
+
+#### v1.0.12
+
+* Changed Start/End auth times to epoch.
+* Updated requirements file.
 
 #### v1.0.11
 

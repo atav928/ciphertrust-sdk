@@ -5,7 +5,7 @@ requires = [
     "wheel",
     "attrs",
     "PyYAML==6.0",
-    "py-easy-logger==0.0.3"
+    "py-easy-logger==0.0.*"
 ]
 
 [project]
