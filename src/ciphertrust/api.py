@@ -14,7 +14,10 @@ from ciphertrust.static import ENCODE
 
 
 class API:
-    """CipherTrust Manager API."""
+    """
+    CipherTrust Manager API.
+    """
+
     _ctm_kwargs: dict[str, Any] = {}
 
     def __init__(self, **kwargs: Any) -> None:
@@ -53,7 +56,8 @@ class API:
         return return_object
 
     def convert_to_string(self, query: dict[str, Any]) -> str:
-        """Convert json to string.
+        """
+        Convert json to string.
 
         :param query: _description_
         :type query: dict
@@ -64,7 +68,8 @@ class API:
 
 
 class Get:
-    """Calls generic GET requests from CipherTrust Manager.
+    """
+    Calls generic GET requests from CipherTrust Manager.
 
     :return: _description_
     :rtype: _type_
@@ -114,17 +119,20 @@ class Get:
 
 
 class Post:
-    """Calls generic POST requests for CipherTrust Manager.
+    """
+    Calls generic POST requests for CipherTrust Manager.
 
     :return: _description_
     :rtype: _type_
     """
+
     _parent_class = None
     _response: Response
     method: str = "POST"
 
     def call(self, url_path: str, **kwargs: Any) -> Dict[str, Any]:
-        """POST call for CipherTrust Manager.
+        """
+        POST call for CipherTrust Manager.
 
         :param url_path: _description_
         :type url_path: str
@@ -155,7 +163,8 @@ class Post:
 
 
 class Delete:
-    """Request method DELETE.
+    """
+    Request method DELETE.
 
     :return: _description_
     :rtype: _type_
@@ -199,7 +208,8 @@ class Delete:
 
 
 class Patch:
-    """Request method PATCH.
+    """
+    Request method PATCH.
 
     :return: _description_
     :rtype: _type_
@@ -209,7 +219,8 @@ class Patch:
     method: str = "PATCH"
 
     def call(self, url_path: str, **kwargs: Any) -> Dict[str, Any]:
-        """CipherTrust API Patch calls
+        """
+        CipherTrust API Patch calls.
 
         :param url_path: _description_
         :type url_path: _type_
