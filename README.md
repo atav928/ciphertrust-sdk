@@ -523,6 +523,10 @@ __Known Bugs:__
 
 #### Release Notes
 
+#### v1.0.13
+
+* Updated Requests Library dependencies.
+
 #### v1.0.12
 
 * Changed Start/End auth times to epoch.
