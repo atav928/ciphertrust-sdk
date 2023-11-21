@@ -523,6 +523,10 @@ __Known Bugs:__
 
 #### Release Notes
 
+### v1.0.16
+
+* Fixed vulnerability in validators module
+
 #### v1.0.14
 
 * Adjusted default log location within application directory.
