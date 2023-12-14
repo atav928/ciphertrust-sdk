@@ -41,6 +41,11 @@ class Auth:
     refresh_token: str
     token: str
     token_type: str
+    jwt: str
+    refresh_expires_in: float
+    refresh_token_expires_in: float
+    refresh_refresh_token_lifetime: float
+    auth_payload: dict[str,Any]
     refresh_authparams: AuthParams
     auth_response: Dict[str, Any] = {}
     exec_time_elapsed: list[float] = []
@@ -63,25 +68,30 @@ class Auth:
             self.timeout: int = authparams.pop("timeout")
             self.verify: Any = authparams.pop("verify")
             self.headers: Dict[str, Any] = authparams.pop("headers")
-            self.__renew_refresh_token: bool = authparams.pop("renew_refresh_token", False)
+            # TODO: If not refresh then generate a new token
+            self._renew_refresh_token: bool = authparams.get("renew_refresh_token", False)
             self._expiration_offset: float = authparams.pop(
                 "expiration_offset", self._expiration_offset)
+            self.refresh_token_revoke_unused_in: float = authparams.get("refresh_token_revoke_unused_in", 0)
+            self.refresh_refresh_token_lifetime: float = authparams.get("refresh_token_lifetime", 0)
         except KeyError as err:
             error: str = reformat_exception(err)
             raise CipherValueError(f"Invalid value: {error}")
         self.payload: Dict[str, Any] = self._create_payload(authparams)
+        # Hold original Auth Payload to use if 
+        self.auth_payload = self._create_payload(authparams)
         self.url: str = config.AUTH.format(self.hostname)
         self.gen_token()
 
     @property
     def renew_refresh_token(self):
-        return self.__renew_refresh_token
+        return self._renew_refresh_token
 
     @renew_refresh_token.setter
     def renew_refresh_token(self, value: bool):
         if not isinstance(value, bool):  # type: ignore
             raise CipherValueError(f"Invalid value for renew_refresh_token: {value}")
-        self.__renew_refresh_token = value
+        self._renew_refresh_token = value
 
     def _create_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         response: Dict[str, Any] = default_payload(**payload)
@@ -100,7 +110,8 @@ class Auth:
         :rtype: Dict[str,Any]
         """
         self.message = ""
-        data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
+        # Use auth payload if refresh token has expired.
+        data: str = orjson.dumps(self.auth_payload).decode(ENCODE)  # pylint: disable=no-member
         start_time: float = return_epoch()
         self.exec_time_start.append(return_epoch())
         try:
@@ -161,6 +172,9 @@ class Auth:
 
     def gen_refresh_token(self) -> None:
         self.message: str = ""
+        # TODO: Rebuild decorator to run all these checks due to bug in code.
+        if self.refresh_token_expires_in != 0 or datetime.datetime.now().timestamp() >= self.refresh_token_expires_in:
+            self.gen_token()
         self.payload: Dict[str, Any] = self._create_payload(self.refresh_authparams.asdict())
         data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
         self.exec_time_start.append(return_epoch())
@@ -199,6 +213,7 @@ class Auth:
             return None
             # raise CipherAuthError(error)
         try:
+            self.jwt = response.json()["jwt"]
             jwt_decode: Dict[str, Any] = self._jwt_decode(response.json()["jwt"])
         except KeyError:
             raise CipherAPIError("No token in response")
@@ -249,6 +264,9 @@ class Auth:
         self.token = response_json["jwt"]
         self.token_type: str = response_json["token_type"]
         self.refresh_token_id = response_json["refresh_token_id"]
+        # Holds the refresh timmer and set to 0 if none which makes the refresh token never expire.
+        self.refresh_token_expires_in = (datetime.datetime.now() + datetime.timedelta(seconds=response_json["refresh_token_expires_in"]) - datetime.timedelta(seconds=self._expiration_offset)).timestamp() if response_json.get("refresh_token_expires_in") else 0
+        self.client_id = response_json.get("client_id")
         # TODO: Change to dataclassifier
         self.refresh_authparams = AuthParams(grant_type="refresh_token",
                                              verify=self.verify,
@@ -256,7 +274,7 @@ class Auth:
                                              timeout=self.timeout,
                                              hostname=self.hostname,
                                              expiration=self.expiration,
-                                             renew_refresh_token=True,
+                                             renew_refresh_token=self._renew_refresh_token,
                                              **response_json)
         self.auth_response: Dict[str, Any] = response_json
         self.duration = response_json["duration"]
