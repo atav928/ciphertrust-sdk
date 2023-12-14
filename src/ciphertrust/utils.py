@@ -122,6 +122,7 @@ def grant_password(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
             "password": kwargs["password"],
             "username": kwargs["username"],
             "connection": kwargs.get("connection", "local_account"),
+            "renew_refresh_token": kwargs["renew_refresh_token"]
         }
         response = {**response, **set_refresh_lifetime(**kwargs)}
         # only sets if password set
