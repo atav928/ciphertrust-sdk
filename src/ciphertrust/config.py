@@ -7,8 +7,8 @@ from easy_logger.utils import set_logdir
 CONFIG_LOCATION: list[str] = [
     str(Path.joinpath(Path.home() / ".config/ciphertrust-sdk.yaml")),
     str(Path.joinpath(Path.home() / ".config/ciphertrust-sdk.yml")),
-    str(Path('/etc/ciphertrust-sdk.yaml')),
-    str(Path('/etc/ciphertrust-sdk.yaml'))
+    str(Path("/etc/ciphertrust-sdk.yaml")),
+    str(Path("/etc/ciphertrust-sdk.yaml")),
 ]
 
 
