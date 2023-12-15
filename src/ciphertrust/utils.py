@@ -2,17 +2,17 @@
 """Utilities"""
 
 import datetime
+import json
+import re
 import statistics
-from typing import Dict, Any
-from pathlib import Path
 import time
 import urllib.parse
-import re
-import json
+from pathlib import Path
+from typing import Any, Dict
 
+import orjson
 import validators
 from requests.models import Response
-import orjson
 
 from ciphertrust.exceptions import CipherValueError
 from ciphertrust.static import ENCODE
@@ -78,7 +78,9 @@ def set_refresh_token_revoke_unused_in(**kwargs: Dict[str, Any]) -> Dict[str, An
     """
     response: Dict[str, Any] = {}
     if kwargs.get("refresh_token_revoke_unused_in"):
-        response["refresh_token_revoke_unused_in"] = kwargs.get("refresh_token_revoke_unused_in")
+        response["refresh_token_revoke_unused_in"] = kwargs.get(
+            "refresh_token_revoke_unused_in"
+        )
     return response
 
 
@@ -122,7 +124,7 @@ def grant_password(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
             "password": kwargs["password"],
             "username": kwargs["username"],
             "connection": kwargs.get("connection", "local_account"),
-            "renew_refresh_token": kwargs["renew_refresh_token"]
+            "renew_refresh_token": kwargs["renew_refresh_token"],
         }
         response = {**response, **set_refresh_lifetime(**kwargs)}
         # only sets if password set
@@ -130,7 +132,9 @@ def grant_password(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
         return response
     except KeyError as err:
         error: str = reformat_exception(err)
-        raise CipherValueError(f"Invalid value: {error}")  # pylint: disable=raise-missing-from
+        raise CipherValueError(
+            f"Invalid value: {error}"
+        )  # pylint: disable=raise-missing-from
 
 
 def grant_refresh(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -145,7 +149,7 @@ def grant_refresh(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
             "grant_type": kwargs["grant_type"],
             "cookies": kwargs.get("cookies", False),
             "labels": kwargs.get("labels", []),
-            "refresh_token": kwargs.get("refresh_token")
+            "refresh_token": kwargs.get("refresh_token"),
         }
         response = {**response, **set_refresh_lifetime(**kwargs)}
         # specific to grant refresh to generate new refresh token
@@ -202,7 +206,7 @@ grant_options: Dict[str, Any] = {
     "password": grant_password,
     "refresh_token": grant_refresh,
     "user_certificate": grant_user_cert,
-    "client_credential": grant_client_creds
+    "client_credential": grant_client_creds,
 }
 
 
@@ -256,6 +260,7 @@ def return_time() -> str:
     """
     return f"{datetime.datetime.utcnow().isoformat()}Z"
 
+
 def return_time_utc() -> str:
     """Gets the current time and returns it in isoformt UTC.
 
@@ -264,7 +269,8 @@ def return_time_utc() -> str:
     """
     return f"{datetime.datetime.utcnow().isoformat()}Z"
 
-def return_epoch(utc: bool=False) -> float:
+
+def return_epoch(utc: bool = False) -> float:
     """Return current system time in epoch without any timezone info.
 
     :return: current system epoch time
@@ -273,6 +279,7 @@ def return_epoch(utc: bool=False) -> float:
     if utc:
         return datetime.datetime.utcnow().timestamp()
     return datetime.datetime.now().timestamp()
+
 
 def convert_to_epoch(date: str) -> float:
     """Convert the returned time in ISO format to epoch.
@@ -286,11 +293,9 @@ def convert_to_epoch(date: str) -> float:
     return datetime.datetime.fromisoformat(date).timestamp()
 
 
-def create_error_response(error: str,
-                          status_code: int,
-                          start_time: float,
-                          end_time: float,
-                          **kwargs: Any) -> Response:
+def create_error_response(
+    error: str, status_code: int, start_time: float, end_time: float, **kwargs: Any
+) -> Response:
     """Creates an error response when no response comes back from request instead of raising an error.
 
     :param error: _description_
@@ -306,40 +311,60 @@ def create_error_response(error: str,
     """
     response = Response()
     response.encoding = ENCODE
-    utc_time_diff: float = datetime.datetime.utcnow().timestamp() - datetime.datetime.now().timestamp()
+    utc_time_diff: float = (
+        datetime.datetime.utcnow().timestamp() - datetime.datetime.now().timestamp()
+    )
     content: dict[str, Any] = {
         "error": error,
         "total": 0,
         "request_parameters": {
-            "hostname": urllib.parse.urlparse(kwargs["url"]).hostname, # type: ignore
+            "hostname": urllib.parse.urlparse(kwargs["url"]).hostname,  # type: ignore
             "method": kwargs.get("method"),
             "timeout": kwargs.get("timeout"),
-            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
-            "data": orjson.dumps(kwargs.get("data", {})).decode(ENCODE),  # pylint: disable=no-member
+            "json": orjson.dumps(kwargs.get("json", {})).decode(
+                ENCODE
+            ),  # pylint: disable=no-member
+            "data": orjson.dumps(kwargs.get("data", {})).decode(
+                ENCODE
+            ),  # pylint: disable=no-member
             "verify": bool(kwargs.get("verify")),
-            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE)  # pylint: disable=no-member
-        }
+            "params": orjson.dumps(kwargs.get("params", {})).decode(
+                ENCODE
+            ),  # pylint: disable=no-member
+        },
     }
     response.status_code = status_code
-    response.url = f"https://{urllib.parse.urlparse(kwargs['url']).hostname}/" # type: ignore
-    response.elapsed = (datetime.datetime.fromtimestamp(
-        end_time) - datetime.datetime.fromtimestamp(start_time))
-    response.headers.update({
-        "Date": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time + utc_time_diff)),
-        "Content-Type": "application/json; charset=UTF-8",
-        "Access-Control-Allow-Headers": "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range",
-        "X-Processing-Time": f"{str(abs(response.elapsed.total_seconds()))}",
-        "Transfer-Encoding": "chunked",
-        "Connection": "keep-alive",
-        "Expires": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime((start_time+utc_time_diff)+kwargs["timeout"])),
-        "Access-Control-Expose-Headers": "Content-Length,Content-Range",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Cache-Control": "no-cache",
-        "X-Krakend": "Version undefined",
-        "X-Krakend-Completed": "false",
-        "Link": kwargs["url"]})
-    response._content = orjson.dumps(content)  # pylint: disable=no-member,protected-access
+    response.url = f"https://{urllib.parse.urlparse(kwargs['url']).hostname}/"  # type: ignore
+    response.elapsed = datetime.datetime.fromtimestamp(
+        end_time
+    ) - datetime.datetime.fromtimestamp(start_time)
+    response.headers.update(
+        {
+            "Date": time.strftime(
+                "%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time + utc_time_diff)
+            ),
+            "Content-Type": "application/json; charset=UTF-8",
+            "Access-Control-Allow-Headers": "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range",
+            "X-Processing-Time": f"{str(abs(response.elapsed.total_seconds()))}",
+            "Transfer-Encoding": "chunked",
+            "Connection": "keep-alive",
+            "Expires": time.strftime(
+                "%a, %d %b %Y %H:%M:%S GMT",
+                time.gmtime((start_time + utc_time_diff) + kwargs["timeout"]),
+            ),
+            "Access-Control-Expose-Headers": "Content-Length,Content-Range",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Cache-Control": "no-cache",
+            "X-Krakend": "Version undefined",
+            "X-Krakend-Completed": "false",
+            "Link": kwargs["url"],
+        }
+    )
+    response._content = orjson.dumps(
+        content
+    )  # pylint: disable=no-member,protected-access
     return response
+
 
 def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
     """Reformat request.
@@ -349,9 +374,14 @@ def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
     :return: _description_
     :rtype: dict[str,Any]
     """
-    start_time: float = kwargs['start_time']  # convert_to_epoch(kwargs['start_time'])
-    headers: Any = json.loads(orjson.dumps(request.headers.__dict__[ # pylint: disable=no-member
-                              "_store"]).decode(ENCODE)),
+    start_time: float = kwargs["start_time"]  # convert_to_epoch(kwargs['start_time'])
+    headers: Any = (
+        json.loads(
+            orjson.dumps(
+                request.headers.__dict__["_store"]  # pylint: disable=no-member
+            ).decode(ENCODE)
+        ),
+    )
     json_response: dict[str, Any] = {
         "headers": headers,
         "response_statistics": {
@@ -359,26 +389,38 @@ def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
             "status_code": request.status_code,
             "exec_time_total": request.elapsed.total_seconds(),
             "exec_time_elapsed": request.elapsed.total_seconds(),
-            "exec_time_end": return_epoch(), # datetime.datetime.utcnow().timestamp(),
+            "exec_time_end": return_epoch(),  # datetime.datetime.utcnow().timestamp(),
             "exec_time_start": start_time,
-            "x_processing_time": float(request.headers.get("X-Processing-Time")) if request.headers.get("X-Processing-Time") else None,
+            "x_processing_time": float(request.headers.get("X-Processing-Time"))
+            if request.headers.get("X-Processing-Time")
+            else None,
         },
         "request_parameters": {
             "hostname": urllib.parse.urlparse(request.url).hostname,
             "url": request.url,
             "method": kwargs.get("method"),
             "timeout": kwargs.get("timeout"),
-            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
+            "json": orjson.dumps(kwargs.get("json", {})).decode(
+                ENCODE
+            ),  # pylint: disable=no-member
             "verify": bool(kwargs.get("verify")),
-            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE)  # pylint: disable=no-member
-        }
+            "params": orjson.dumps(kwargs.get("params", {})).decode(
+                ENCODE
+            ),  # pylint: disable=no-member
+        },
     }
     if len(kwargs.get("exec_time_elapsed_list", [])) > 1:
         json_response["response_statistics"]["exec_time_stdev"] = statistics.stdev(
-            kwargs.get("exec_time_elapsed_list"))  # type: ignore
+            kwargs.get("exec_time_elapsed_list")
+        )  # type: ignore
     return json_response
 
+
 if __name__ == "__main__":
-    valididate_list: list[str] = ["invalid", "valid-domain.example.com", "invalid_domain*.com"]
+    valididate_list: list[str] = [
+        "invalid",
+        "valid-domain.example.com",
+        "invalid_domain*.com",
+    ]
     for _ in valididate_list:
         is_valid = validate_domain(_)

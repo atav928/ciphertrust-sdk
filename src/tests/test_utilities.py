@@ -1,8 +1,7 @@
 """Testing Utilities"""
 
-from typing import Any
-
 import unittest
+from typing import Any
 
 from ciphertrust import utils
 
@@ -10,14 +9,14 @@ DOMAIN_TESTS_VALID: list[str] = [
     "some.url.domain.com",
     "some-other-domain.edu",
     "top.sub.domain.com",
-    "domain.com"
+    "domain.com",
 ]
 
 DOMAIN_TESTS_INVALID: list[Any] = [
     "invalid_domain*.com",
     12345,
     "invalid",
-    "*not)(valid)"
+    "*not)(valid)",
 ]
 
 
@@ -25,8 +24,7 @@ class TestUtilities(unittest.TestCase):
     """Testing CipherTrust Utilities"""
 
     def test_validators_true(self) -> None:
-        """Validating Domain List that should always be True
-        """
+        """Validating Domain List that should always be True"""
         for value in DOMAIN_TESTS_VALID:
             result: bool = utils.validate_domain(value)
             # print(f"{value} is {result}")
