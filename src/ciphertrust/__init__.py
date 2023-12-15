@@ -1,6 +1,6 @@
 """Package Initialization"""
 
-import easy_logger
+
 import yaml
 
 from ciphertrust._version import __version__
@@ -20,14 +20,25 @@ if config.YAML_CONFIG:
     config.LOGMAXBYTES = yaml_configs.get("LOGMAXBYTES", config.LOGMAXBYTES)
     config.LOGBACKUPCOUNT = yaml_configs.get("LOGBACKUPCOUNT", config.LOGBACKUPCOUNT)
 
-logger = easy_logger.RotatingLog(
-    "ciphertrust-sdk",
-    logName=config.LOGNAME,
-    logDir=config.LOGDIR,
-    level=config.LOGLEVEL,
-    stream=config.LOGSTREAM,
-    setLog=config.LOGSET,
-    setFile=config.LOGFILE,
-    maxBytes=config.LOGMAXBYTES,
-    backupCount=config.LOGBACKUPCOUNT,
-)
+try:
+    import easy_logger
+    logging = easy_logger.RotatingLog(
+        "ciphertrust-sdk",
+        logName=config.LOGNAME,
+        logDir=config.LOGDIR,
+        level=config.LOGLEVEL,
+        stream=config.LOGSTREAM,
+        setLog=config.LOGSET,
+        setFile=config.LOGFILE,
+        maxBytes=config.LOGMAXBYTES,
+        backupCount=config.LOGBACKUPCOUNT,
+    )
+    logging.getLogger(__name__).info(f'msg="Initiated rotate logger."|logName={config.LOGNAME}, logDir={config.LOGDIR}')
+except (PermissionError, ImportError) as error:
+    import logging
+    logging.getLogger(__name__).error(f'Unable to import Easy Lgger or set up log"|error={str(error)}')
+
+__all__ = [
+    "logging",
+
+]

@@ -11,7 +11,7 @@ import requests
 from easy_logger.log_format import splunk_format
 from requests import HTTPError, Response
 
-from ciphertrust import config, logger
+from ciphertrust import config, logging
 from ciphertrust.exceptions import (CipherAPIError, CipherAuthError,
                                     CipherValueError)
 from ciphertrust.models import AuthParams
@@ -24,7 +24,7 @@ from ciphertrust.utils import (create_error_response, default_payload,
 
 
 
-cipher_log = logger.getLogger(__name__)
+cipher_log = logging.getLogger(__name__)
 
 
 class Auth:

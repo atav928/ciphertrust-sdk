@@ -19,7 +19,7 @@ from dateutil import parser
 from easy_logger.log_format import splunk_format
 from requests import HTTPError, ReadTimeout, Response
 
-from ciphertrust import logger
+from ciphertrust import logging
 from ciphertrust.auth import Auth, refresh_token  # type: ignore
 from ciphertrust.exceptions import CipherMissingParam
 from ciphertrust.static import (DEFAULT_HEADERS, DEFAULT_LIMITS_OVERRIDE,
@@ -29,7 +29,7 @@ from ciphertrust.utils import (concat_resources, create_error_response,
                                format_request, reformat_exception,
                                return_epoch, return_time, verify_path_exists)
 
-cipher_log = logger.getLogger(__name__)
+cipher_log = logging.getLogger(__name__)
 
 
 def standard_request(request: Response, **kwargs: Any) -> dict[str, Any]:
