@@ -4,8 +4,8 @@ requires = [
     "setuptools",
     "wheel",
     "attrs",
-    "PyYAML==6.0",
-    "py-easy-logger==0.0.*"
+    "PyYAML>=6.0",
+    "py-easy-logger"
 ]
 
 [project]
@@ -25,9 +25,22 @@ classifiers = [
 ]
 dynamic = ["version", "readme", "dependencies"]
 
+[project.optional-dependencies]
+test = [
+    "pytest-cov",
+    "pytest",
+    "pytest-mock",
+    "unittest2",
+    "dataclasses",
+    "six"
+]
+
+[tool.pytest.ini_options]
+addopts = "-v --cov --cov-report html --cov-report term-missing --cov-fail-under 1"
+
 [tool.setuptools.dynamic]
 dependencies = {file = "requirements.txt"}
-readme = {file = ["README.md"], content-type = "text/markdown"}
+readme = {file = ["README.md","CHANGELOG.md"], content-type = "text/markdown"}
 version = {attr = "ciphertrust.__version__"}
 
 [tool.setuptools.packages.find]

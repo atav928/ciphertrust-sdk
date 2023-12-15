@@ -2,15 +2,16 @@
 """CipherTrust API"""
 
 from typing import Any, Dict
+
 import orjson
 from requests import Response
 
 from ciphertrust import config
-from ciphertrust.utils import return_epoch
-from ciphertrust.models import RequestParams
 from ciphertrust.auth import Auth
-from ciphertrust.requestapi import (api_raise_error, ctm_request)
+from ciphertrust.models import RequestParams
+from ciphertrust.requestapi import api_raise_error, ctm_request
 from ciphertrust.static import ENCODE
+from ciphertrust.utils import return_epoch
 
 
 class API:
@@ -37,21 +38,25 @@ class API:
         class GetWrapper(Get):
             def __init__(self) -> None:
                 self._parent_class = _parent_class
+
         return_object["get"] = GetWrapper
 
         class PostWrapper(Post):
             def __init__(self) -> None:
                 self._parent_class = _parent_class
+
         return_object["post"] = PostWrapper
 
         class PatchWrapper(Patch):
             def __init__(self) -> None:
                 self._parent_class = _parent_class
+
         return_object["patch"] = PatchWrapper
 
         class DeleteWrapper(Delete):
             def __init__(self) -> None:
                 self._parent_class = _parent_class
+
         return_object["delete"] = DeleteWrapper
         return return_object
 
@@ -94,16 +99,22 @@ class Get:
             url=url,
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
-            **kwargs).asdict()
+            **kwargs,
+        ).asdict()
         start_time: float = return_epoch()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_get_kwargs)  # type: ignore
         self._response = req
         if save_dir:
-            response = api_raise_error(response=req, save_dir=save_dir,
-                                       start_time=start_time,  **ctm_get_kwargs)
+            response = api_raise_error(
+                response=req, save_dir=save_dir, start_time=start_time, **ctm_get_kwargs
+            )
             return response
-        response = api_raise_error(response=req, method_type="standard",
-                                   start_time=start_time, **ctm_get_kwargs)
+        response = api_raise_error(
+            response=req,
+            method_type="standard",
+            start_time=start_time,
+            **ctm_get_kwargs,
+        )
         return response
 
     @property
@@ -143,12 +154,19 @@ class Post:
             method=self.method,
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
-            **kwargs).asdict()
+            **kwargs,
+        ).asdict()
         start_time: float = return_epoch()
-        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_post_kwargs)  # type:ignore
+        req: Response = ctm_request(
+            auth=self._parent_class.auth, **ctm_post_kwargs
+        )  # type:ignore
         self._response = req
         return api_raise_error(
-            response=req, method_type="standard", start_time=start_time, **ctm_post_kwargs)
+            response=req,
+            method_type="standard",
+            start_time=start_time,
+            **ctm_post_kwargs,
+        )
 
     @property
     def response(self) -> Response:
@@ -169,6 +187,7 @@ class Delete:
     :return: _description_
     :rtype: _type_
     """
+
     _parent_class = None
     _response: Response
     method: str = "DELETE"
@@ -187,13 +206,20 @@ class Delete:
             method=self.method,
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
-            **kwargs).asdict()
+            **kwargs,
+        ).asdict()
         start_time: float = return_epoch()
         # Returns Status Code 204 without any content
-        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_delete_kwargs)  # type:ignore
+        req: Response = ctm_request(
+            auth=self._parent_class.auth, **ctm_delete_kwargs
+        )  # type:ignore
         self._response = req
         return api_raise_error(
-            response=req, method_type="delete", start_time=start_time, **ctm_delete_kwargs)
+            response=req,
+            method_type="delete",
+            start_time=start_time,
+            **ctm_delete_kwargs,
+        )
 
     @property
     def response(self) -> Response:
@@ -214,6 +240,7 @@ class Patch:
     :return: _description_
     :rtype: _type_
     """
+
     _parent_class = None
     _response: Response
     method: str = "PATCH"
@@ -234,12 +261,19 @@ class Patch:
             method=self.method,
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
-            **kwargs).asdict()
+            **kwargs,
+        ).asdict()
         start_time: float = return_epoch()
-        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_patch_kwargs)  # type:ignore
+        req: Response = ctm_request(
+            auth=self._parent_class.auth, **ctm_patch_kwargs
+        )  # type:ignore
         self._response = req
         return api_raise_error(
-            response=req, method_type="standard", start_time=start_time, **ctm_patch_kwargs)
+            response=req,
+            method_type="standard",
+            start_time=start_time,
+            **ctm_patch_kwargs,
+        )
 
     @property
     def response(self) -> Response:
