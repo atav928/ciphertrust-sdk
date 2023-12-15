@@ -2,13 +2,14 @@
 """Models"""
 
 import copy
-from typing import Dict, List, Any, Optional, cast
-
 from dataclasses import dataclass, field, fields
+from typing import Any, Dict, List, Optional, cast
+
 import orjson
 
-from ciphertrust.static import (DEFAULT_HEADERS, DEFAULT_TIMEOUT, ENCODE, VALID_METHODS, GRANT_VALUES)
 from ciphertrust.exceptions import CipherValueError
+from ciphertrust.static import (DEFAULT_HEADERS, DEFAULT_TIMEOUT, ENCODE,
+                                GRANT_VALUES, VALID_METHODS)
 from ciphertrust.utils import validate_domain, verify_file_exists
 
 NONETYPE: None = cast(None, object())
@@ -33,6 +34,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
     :return: _description_
     :rtype: _type_
     """
+
     hostname: str
     connnection: Optional[str] = NONETYPE
     cookies: Optional[bool] = NONETYPE
@@ -61,7 +63,9 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
         if not validate_domain(self.hostname):
             raise CipherValueError(f"Invlalid hostname: {self.hostname}")
 
-    def __new__(cls, *args: Any, **kwargs: Any):  # pylint: disable=unused-argument,unknown-option-value
+    def __new__(
+        cls, *args: Any, **kwargs: Any
+    ):  # pylint: disable=unused-argument,unknown-option-value
         """Used to append any additional parameters passed.
 
         :return: _description_
@@ -92,7 +96,9 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
         :return: dataclass dictionary
         :rtype: dict[str, Any]
         """
-        return {key: value for key, value in self.__dict__.items() if value is not NONETYPE}
+        return {
+            key: value for key, value in self.__dict__.items() if value is not NONETYPE
+        }
 
 
 @dataclass
@@ -118,8 +124,8 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         before giving up, as a float, or a :ref:`(connect timeout, read
         timeout) <timeouts>` tuple.
     :type timeout: float or tuple
-    :param allow_redirects: (optional) Boolean. Enable/disable 
-            GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection. 
+    :param allow_redirects: (optional) Boolean. Enable/disable
+            GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection.
             Defaults to ``True``.
     :type allow_redirects: bool
     :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
@@ -127,12 +133,13 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
             the server's TLS certificate, or a string, in which case it must be a path
             to a CA bundle to use. Defaults to ``True``.
     :param stream: (optional) if ``False``, the response content will be immediately downloaded.
-    :param cert: (optional) if String, path to ssl client cert file (.pem). 
+    :param cert: (optional) if String, path to ssl client cert file (.pem).
             If Tuple, ('cert', 'key') pair.
 
     :return: :datclass:`RequestParams <RequestParams>` object
     :rtype: models.RequestParams
     """
+
     method: str
     url: str
     timeout: Any = DEFAULT_TIMEOUT
@@ -160,7 +167,9 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         if all([not isinstance(self.json, dict), self.json is not NONETYPE]):
             raise CipherValueError(f"Invalid request param json: {self.json}")
         if all([isinstance(self.data, str), self.data is not NONETYPE]):
-            self.data = orjson.dumps(self.data).decode(ENCODE)  # pylint: disable=no-member
+            self.data = orjson.dumps(self.data).decode(
+                ENCODE
+            )  # pylint: disable=no-member
         if not any([isinstance(self.verify, bool), isinstance(self.verify, str)]):
             raise CipherValueError(f"Invalid value: {self.verify=}")
         if isinstance(self.verify, str):
@@ -177,8 +186,7 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         :rtype: :dataclass: RequestParams
         """
         class_fields = {f.name for f in fields(cls)}
-        return RequestParams(
-            **{k: v for k, v in dict_.items() if k in class_fields})
+        return RequestParams(**{k: v for k, v in dict_.items() if k in class_fields})
 
     @classmethod
     def create_from_kwargs(cls, **kwargs: Any):
@@ -191,8 +199,7 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         :rtype: :dataclass: RequestParams
         """
         class_fields = {f.name for f in fields(cls)}
-        return RequestParams(
-            **{k: v for k, v in kwargs.items() if k in class_fields})
+        return RequestParams(**{k: v for k, v in kwargs.items() if k in class_fields})
 
     def asdict(self) -> dict[str, Any]:
         """Returns dataclass as dictionary and removes any none types.
@@ -200,7 +207,9 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         :return: dataclass dictionary
         :rtype: dict[str, Any]
         """
-        return {key: value for key, value in self.__dict__.items() if value is not NONETYPE}
+        return {
+            key: value for key, value in self.__dict__.items() if value is not NONETYPE
+        }
 
 
 if __name__ == "__main__":
@@ -208,15 +217,16 @@ if __name__ == "__main__":
         "hostname": "something.com",
         "grant_type": "password",
         "username": "some-password",
-        "headers": {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
+        "headers": {"Content-Type": "application/json", "Accept": "application/json"},
         "ext": "value",
-        "expiration_offset": 8.0
+        "expiration_offset": 8.0,
     }
-    req_sample: dict[str, Any] = {"url": "https://example.com/",
-                                  "method": "GET", "verify": False, "invalid_param": "somestring"}
+    req_sample: dict[str, Any] = {
+        "url": "https://example.com/",
+        "method": "GET",
+        "verify": False,
+        "invalid_param": "somestring",
+    }
     authparam: dict[str, Any] = AuthParams(**sample).asdict()
     print(f"{authparam=}")
     request_params = RequestParams.create_from_kwargs(**req_sample).asdict()
