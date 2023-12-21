@@ -39,7 +39,8 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
     connnection: Optional[str] = NONETYPE
     cookies: Optional[bool] = NONETYPE
     domain: Optional[str] = NONETYPE
-    grant_type: str = "password"
+    # TODO: grant_type is optional must change to allow no refresh return.
+    grant_type: Optional[str] = "password"
     labels: List[str] = field(default_factory=lambda: [])
     password: Optional[str] = NONETYPE
     refresh_token: Optional[str] = NONETYPE
@@ -62,6 +63,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
         # TODO: Verify hostname is a valid domainname
         if not validate_domain(self.hostname):
             raise CipherValueError(f"Invlalid hostname: {self.hostname}")
+        # TODO: Validate auth param combinations if grant_type specified and refresh set
 
     def __new__(
         cls, *args: Any, **kwargs: Any
