@@ -1,4 +1,4 @@
-orjson==3.8.*
+orjson>=3.8.3
 PyJWT==2.7.*
 requests~=2.28
 dataclasses>=0.6
