@@ -105,9 +105,7 @@ class Get:
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_get_kwargs)  # type: ignore
         self._response = req
         if save_dir:
-            response = api_raise_error(
-                response=req, save_dir=save_dir, start_time=start_time, **ctm_get_kwargs
-            )
+            response = api_raise_error(response=req, save_dir=save_dir, start_time=start_time, **ctm_get_kwargs)
             return response
         response = api_raise_error(
             response=req,
@@ -157,9 +155,7 @@ class Post:
             **kwargs,
         ).asdict()
         start_time: float = return_epoch()
-        req: Response = ctm_request(
-            auth=self._parent_class.auth, **ctm_post_kwargs
-        )  # type:ignore
+        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_post_kwargs)  # type:ignore
         self._response = req
         return api_raise_error(
             response=req,
@@ -210,9 +206,7 @@ class Delete:
         ).asdict()
         start_time: float = return_epoch()
         # Returns Status Code 204 without any content
-        req: Response = ctm_request(
-            auth=self._parent_class.auth, **ctm_delete_kwargs
-        )  # type:ignore
+        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_delete_kwargs)  # type:ignore
         self._response = req
         return api_raise_error(
             response=req,
@@ -264,9 +258,7 @@ class Patch:
             **kwargs,
         ).asdict()
         start_time: float = return_epoch()
-        req: Response = ctm_request(
-            auth=self._parent_class.auth, **ctm_patch_kwargs
-        )  # type:ignore
+        req: Response = ctm_request(auth=self._parent_class.auth, **ctm_patch_kwargs)  # type:ignore
         self._response = req
         return api_raise_error(
             response=req,

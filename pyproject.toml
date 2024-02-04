@@ -16,27 +16,16 @@ authors = [
 description = "Thales CipherTrust SDK RestAPI"
 requires-python = ">=3.9,<4"
 license = {file = "LICENSE"}
+
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: Implementation",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10"
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
 ]
+
 dynamic = ["version", "readme", "dependencies"]
-
-[project.optional-dependencies]
-test = [
-    "pytest-cov",
-    "pytest",
-    "pytest-mock",
-    "unittest2",
-    "dataclasses",
-    "six"
-]
-
-[tool.pytest.ini_options]
-addopts = "-v --cov --cov-report html --cov-report term-missing --cov-fail-under 1"
 
 [tool.setuptools.dynamic]
 dependencies = {file = "requirements.txt"}
@@ -52,5 +41,42 @@ namespaces = true
 [tool.coverage.run]
 source = ["src"]
 
+
 [tool.pylint]
-max-line-length = 101
+max-line-length = 150
+
+[project.optional-dependencies]
+test = [
+    "pytest-cov",
+    "pytest",
+    "pytest-mock",
+    "unittest2",
+    "dataclasses",
+    "six",
+    "black",
+    "pylint",
+    "tomli"
+]
+
+[tool.pytest.ini_options]
+addopts = "-v --cov --cov-report html --cov-report term-missing --cov-fail-under 65"
+
+[tool.black]
+line-length = 147
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # The following are specific to Black, you probably don't want those.
+  tests/data
+  | profiling
+)/
+'''
+
+[tool.isort]
+atomic = true
+profile = "black"
+line_length = 147
+skip_gitignore = true
+skip_glob = ["tests/data", "profiling"]
+known_first_party = ["black", "blib2to3", "blackd", "_black_version"]

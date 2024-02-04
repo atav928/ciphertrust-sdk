@@ -22,12 +22,16 @@ from requests import HTTPError, ReadTimeout, Response
 from ciphertrust import logging
 from ciphertrust.auth import Auth, refresh_token  # type: ignore
 from ciphertrust.exceptions import CipherMissingParam
-from ciphertrust.static import (DEFAULT_HEADERS, DEFAULT_LIMITS_OVERRIDE,
-                                DEFAULT_TIMEOUT_CONFIG_OVERRIDE, ENCODE,
-                                REGEX_NUM)
-from ciphertrust.utils import (concat_resources, create_error_response,
-                               format_request, reformat_exception,
-                               return_epoch, return_time, verify_path_exists)
+from ciphertrust.static import DEFAULT_HEADERS, DEFAULT_LIMITS_OVERRIDE, DEFAULT_TIMEOUT_CONFIG_OVERRIDE, ENCODE, REGEX_NUM
+from ciphertrust.utils import (
+    concat_resources,
+    create_error_response,
+    format_request,
+    reformat_exception,
+    return_epoch,
+    return_time,
+    verify_path_exists,
+)
 
 cipher_log = logging.getLogger(__name__)
 
@@ -51,9 +55,7 @@ def delete_request(request: Response, **kwargs: Any) -> dict[str, Any]:
     :rtype: dict[str,Any]
     """
     ident: str = urllib.parse.urlparse(request.url).path.split("/")[-1]
-    value_type: str = re.sub(
-        REGEX_NUM, "", urllib.parse.urlparse(request.url).path.split("/")[-2]
-    )
+    value_type: str = re.sub(REGEX_NUM, "", urllib.parse.urlparse(request.url).path.split("/")[-2])
     delete_response: dict[str, Any] = {
         "id": ident,
         "message": f"Deleted {value_type} with ID {ident}",
@@ -74,8 +76,7 @@ def download_request(request: Response, **kwargs: Any) -> dict[str, Any]:
         raise FileExistsError(f"{save_path} does not exist")
     parsed_url: urllib.parse.ParseResult = urllib.parse.urlparse(request.url)  # type: ignore
     save_filename: Path = Path.joinpath(
-        Path(save_path)
-        / f"{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}_ciphertrust_log_{parsed_url.hostname}.tar.gz"
+        Path(save_path) / f"{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}_ciphertrust_log_{parsed_url.hostname}.tar.gz"
     )  # pylint: disable=line-too-long,unknown-option-value
     with open(save_filename, "wb") as fild:
         for chunk in request.iter_content(chunk_size=chunk_size):
@@ -89,9 +90,7 @@ def download_request(request: Response, **kwargs: Any) -> dict[str, Any]:
 
 
 @refresh_token
-def ctm_request(
-    auth: Auth, **kwargs: Any
-) -> Response:  # pylint: disable=too-many-locals
+def ctm_request(auth: Auth, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
     """_summary_
 
     Args:
@@ -112,9 +111,7 @@ def ctm_request(
     kwargs.get("headers", {}).update({"Authorization": f"Bearer {auth.token}"})
     start_time: float = datetime.datetime.utcnow().timestamp()
     try:
-        response: Response = requests.request(
-            **kwargs
-        )  # pylint: disable=missing-timeout
+        response: Response = requests.request(**kwargs)  # pylint: disable=missing-timeout
     except ReadTimeout as err:
         error = reformat_exception(err)
         end_time: float = datetime.datetime.utcnow().timestamp()
@@ -129,9 +126,7 @@ def ctm_request(
 
 
 @refresh_token
-async def ctm_request_async(
-    auth: Auth, **kwargs: Any
-) -> Dict[str, Any]:  # pylint: disable=too-many-locals
+async def ctm_request_async(auth: Auth, **kwargs: Any) -> Dict[str, Any]:  # pylint: disable=too-many-locals
     """_summary_
 
     Args:
@@ -165,9 +160,7 @@ async def ctm_request_async(
     response: httpx.Response = await client.get(url=url, params=params, headers=headers)
     json_response = {
         "exec_time_total": response.elapsed.total_seconds(),
-        "headers": json.loads(
-            orjson.dumps(response.headers.__dict__["_store"]).decode(ENCODE)
-        ),  # pylint: disable=no-member
+        "headers": json.loads(orjson.dumps(response.headers.__dict__["_store"]).decode(ENCODE)),  # pylint: disable=no-member
         "exec_time_end": return_time(),
     }
     return {**json_response, **response.json()}
@@ -194,9 +187,7 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
     # works when limit is already reached
     # TODO: This will send full iterations, but too many calls.
     # Reduce the amount of calls to prevent excessive calls.
-    iterations: int = (
-        int(total / limit) if (total % limit == 0) else (total // limit + 1)
-    )
+    iterations: int = int(total / limit) if (total % limit == 0) else (total // limit + 1)
     # iterations = 10
     response: Dict[str, Any] = {
         "total": total,
@@ -216,17 +207,13 @@ async def ctm_request_list_all(auth: Auth, **kwargs: Any) -> Dict[str, Any]:
         iterations -= 10
         # print(f"One loop iteration completed new_iterations={iterations}")
     response = {**response, **build_responsde(full_listed_resp=full_listed_resp)}  # type: ignore
-    response["exec_time_total"] = datetime.datetime.fromtimestamp(
-        return_epoch()
-    ) - datetime.datetime.fromtimestamp(start_time)
+    response["exec_time_total"] = datetime.datetime.fromtimestamp(return_epoch()) - datetime.datetime.fromtimestamp(start_time)
     response["exec_time_start"] = start_time
     return response
 
 
 @refresh_token
-async def split_up_req(
-    auth: Auth, iterations: int, limit: int, **kwargs: Any
-) -> List[Dict[str, Any]]:
+async def split_up_req(auth: Auth, iterations: int, limit: int, **kwargs: Any) -> List[Dict[str, Any]]:
     """Splitting up requests due to too many being sent and cannot handle.
       Trying to adjust with timeout, but still causes errors on return.
 
@@ -274,9 +261,7 @@ def build_responsde(full_listed_resp: list[dict[str, Any]]) -> dict[str, Any]:
         "resources": [],
     }
     end_time: float = datetime.datetime.utcnow().timestamp()
-    elapsed_times: list[float] = [
-        value["exec_time_total"] for value in full_listed_resp
-    ]
+    elapsed_times: list[float] = [value["exec_time_total"] for value in full_listed_resp]
     response["elapsed_times"] = elapsed_times
     response["exec_time_end"] = end_time
     response["exec_time_min"] = min(elapsed_times)
@@ -297,9 +282,7 @@ def asyn_get_all(auth: Auth, **kwargs: Any) -> dict[str, Any]:
     return asyncio.run(ctm_request_list_all(auth=auth, **kwargs))
 
 
-def api_raise_error(
-    response: Response, method_type: str = "standard", **kwargs: Any
-) -> dict[str, Any]:
+def api_raise_error(response: Response, method_type: str = "standard", **kwargs: Any) -> dict[str, Any]:
     """Raises error if response not what was expected
 
     Args:
