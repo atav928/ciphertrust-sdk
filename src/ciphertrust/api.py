@@ -100,7 +100,7 @@ class Get:
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs,
-        ).asdict()
+        ).to_dict()
         start_time: float = return_epoch()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_get_kwargs)  # type: ignore
         self._response = req
@@ -153,7 +153,7 @@ class Post:
             verify=self._parent_class.auth.verify,  # type: ignore
             timeout=self._parent_class.auth.timeout,  # type: ignore
             **kwargs,
-        ).asdict()
+        ).to_dict()
         start_time: float = return_epoch()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_post_kwargs)  # type:ignore
         self._response = req
@@ -203,7 +203,7 @@ class Delete:
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
             **kwargs,
-        ).asdict()
+        ).to_dict()
         start_time: float = return_epoch()
         # Returns Status Code 204 without any content
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_delete_kwargs)  # type:ignore
@@ -256,7 +256,7 @@ class Patch:
             timeout=self._parent_class.auth.timeout,  # type: ignore
             verify=self._parent_class.auth.verify,  # type: ignore
             **kwargs,
-        ).asdict()
+        ).to_dict()
         start_time: float = return_epoch()
         req: Response = ctm_request(auth=self._parent_class.auth, **ctm_patch_kwargs)  # type:ignore
         self._response = req

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field, fields
 from typing import Any, Dict, List, Optional, cast
 
 import orjson
+from pytoolkit.utilities import BaseMonitor
 
 from ciphertrust.exceptions import CipherValueError
 from ciphertrust.static import DEFAULT_HEADERS, DEFAULT_TIMEOUT, ENCODE, GRANT_VALUES, VALID_METHODS
@@ -26,7 +27,7 @@ def default_field(obj: Dict[str, Any]) -> Any:
 
 
 @dataclass()
-class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-attributes
+class AuthParams(BaseMonitor):  # pylint: disable=missing-class-docstring,too-many-instance-attributes
     """Authorization Parameters for CipherTrust Auth
 
     :raises CipherValueError: Invalid parameter supplied
@@ -45,7 +46,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
     refresh_token: Optional[str] = NONETYPE
     refresh_token_lifetime: Optional[int] = NONETYPE
     refresh_token_revoke_unused_in: Optional[int] = NONETYPE
-    renew_refresh_token: bool = False
+    renew_refresh_token: Optional[bool] = NONETYPE
     username: Optional[str] = NONETYPE
     cert: Optional[Any] = NONETYPE
     verify: Any = True
@@ -89,17 +90,9 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
             setattr(ret, new_name, new_val)
         return ret
 
-    def asdict(self) -> dict[str, Any]:
-        """Returns dataclass as dictionary.
-
-        :return: dataclass dictionary
-        :rtype: dict[str, Any]
-        """
-        return {key: value for key, value in self.__dict__.items() if value is not NONETYPE}
-
 
 @dataclass
-class RequestParams:  # pylint: disable=too-many-instance-attributes
+class RequestParams(BaseMonitor):  # pylint: disable=too-many-instance-attributes
     """Request Parameters used for HTTPS Requests.
 
     :param method: method for the new :class:`Request` object: ``GET``, ``OPTIONS``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, or ``DELETE``.
@@ -170,40 +163,6 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         if isinstance(self.verify, str):
             verify_file_exists(self.verify)
 
-    @classmethod
-    def create_from_dict(cls, dict_: dict[str, Any]):
-        """Class Method that returns RequestParams dataclass
-        using a dictionary and strips invalid params.
-
-        :param dict_: _description_
-        :type dict_: _type_
-        :return: Dataclass
-        :rtype: :dataclass: RequestParams
-        """
-        class_fields = {f.name for f in fields(cls)}
-        return RequestParams(**{k: v for k, v in dict_.items() if k in class_fields})
-
-    @classmethod
-    def create_from_kwargs(cls, **kwargs: Any):
-        """Class method that returns RequestParams dataclass by unpacking paramter values
-        and strips out invalid params.
-
-        :param kwargs: unpacked key:value pairs
-        :type **kwargs: variable length argument list
-        :return: Dataclass
-        :rtype: :dataclass: RequestParams
-        """
-        class_fields = {f.name for f in fields(cls)}
-        return RequestParams(**{k: v for k, v in kwargs.items() if k in class_fields})
-
-    def asdict(self) -> dict[str, Any]:
-        """Returns dataclass as dictionary and removes any none types.
-
-        :return: dataclass dictionary
-        :rtype: dict[str, Any]
-        """
-        return {key: value for key, value in self.__dict__.items() if value is not NONETYPE}
-
 
 if __name__ == "__main__":
     sample: Dict[str, Any] = {
@@ -220,7 +179,7 @@ if __name__ == "__main__":
         "verify": False,
         "invalid_param": "somestring",
     }
-    authparam: dict[str, Any] = AuthParams(**sample).asdict()
+    authparam: dict[str, Any] = AuthParams(**sample).to_dict()
     print(f"{authparam=}")
-    request_params = RequestParams.create_from_kwargs(**req_sample).asdict()
+    request_params = RequestParams.create_from_kwargs(**req_sample).to_dict()
     print(f"{request_params=}")

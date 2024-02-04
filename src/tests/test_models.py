@@ -18,6 +18,6 @@ class TestModels(unittest.TestCase):
 
     def AuthTest(self) -> None:
         """Test Auth Model"""
-        authparam: dict[str, Any] = AuthParams(**SAMPLE)
+        authparam: AuthParams = AuthParams.create_from_kwargs(**SAMPLE)
         self.assertEqual("something.com", authparam.hostname)
         self.assertEqual("password", authparam.grant_type)

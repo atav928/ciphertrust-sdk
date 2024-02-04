@@ -15,6 +15,8 @@ DEFAULT_HEADERS: Dict[str, Any] = {"Content-Type": "application/json"}
 DEFAULT_LIMITS_OVERRIDE = Limits(max_connections=100, max_keepalive_connections=5)
 DEFAULT_TIMEOUT_CONFIG_OVERRIDE = Timeout(timeout=None)
 DEFAULT_TIMEOUT: float = 60.0
+DEFAULT_REFRESH_TOKEN_LIFETIME: int = 0
+DEFAULT_REFRESH_TOKEN_REVOKE_UNUSED_IN: int = 120
 
 REQUEST_VALID_PARAMS: dict[str, Any] = {
     "required": [
