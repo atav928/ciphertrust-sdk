@@ -8,8 +8,7 @@ from typing import Any, Dict, List, Optional, cast
 import orjson
 
 from ciphertrust.exceptions import CipherValueError
-from ciphertrust.static import (DEFAULT_HEADERS, DEFAULT_TIMEOUT, ENCODE,
-                                GRANT_VALUES, VALID_METHODS)
+from ciphertrust.static import DEFAULT_HEADERS, DEFAULT_TIMEOUT, ENCODE, GRANT_VALUES, VALID_METHODS
 from ciphertrust.utils import validate_domain, verify_file_exists
 
 NONETYPE: None = cast(None, object())
@@ -65,9 +64,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
             raise CipherValueError(f"Invlalid hostname: {self.hostname}")
         # TODO: Validate auth param combinations if grant_type specified and refresh set
 
-    def __new__(
-        cls, *args: Any, **kwargs: Any
-    ):  # pylint: disable=unused-argument,unknown-option-value
+    def __new__(cls, *args: Any, **kwargs: Any):  # pylint: disable=unused-argument,unknown-option-value
         """Used to append any additional parameters passed.
 
         :return: _description_
@@ -98,9 +95,7 @@ class AuthParams:  # pylint: disable=missing-class-docstring,too-many-instance-a
         :return: dataclass dictionary
         :rtype: dict[str, Any]
         """
-        return {
-            key: value for key, value in self.__dict__.items() if value is not NONETYPE
-        }
+        return {key: value for key, value in self.__dict__.items() if value is not NONETYPE}
 
 
 @dataclass
@@ -169,9 +164,7 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         if all([not isinstance(self.json, dict), self.json is not NONETYPE]):
             raise CipherValueError(f"Invalid request param json: {self.json}")
         if all([isinstance(self.data, str), self.data is not NONETYPE]):
-            self.data = orjson.dumps(self.data).decode(
-                ENCODE
-            )  # pylint: disable=no-member
+            self.data = orjson.dumps(self.data).decode(ENCODE)  # pylint: disable=no-member
         if not any([isinstance(self.verify, bool), isinstance(self.verify, str)]):
             raise CipherValueError(f"Invalid value: {self.verify=}")
         if isinstance(self.verify, str):
@@ -209,9 +202,7 @@ class RequestParams:  # pylint: disable=too-many-instance-attributes
         :return: dataclass dictionary
         :rtype: dict[str, Any]
         """
-        return {
-            key: value for key, value in self.__dict__.items() if value is not NONETYPE
-        }
+        return {key: value for key, value in self.__dict__.items() if value is not NONETYPE}
 
 
 if __name__ == "__main__":

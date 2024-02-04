@@ -78,9 +78,7 @@ def set_refresh_token_revoke_unused_in(**kwargs: Dict[str, Any]) -> Dict[str, An
     """
     response: Dict[str, Any] = {}
     if kwargs.get("refresh_token_revoke_unused_in"):
-        response["refresh_token_revoke_unused_in"] = kwargs.get(
-            "refresh_token_revoke_unused_in"
-        )
+        response["refresh_token_revoke_unused_in"] = kwargs.get("refresh_token_revoke_unused_in")
     return response
 
 
@@ -132,9 +130,7 @@ def grant_password(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
         return response
     except KeyError as err:
         error: str = reformat_exception(err)
-        raise CipherValueError(
-            f"Invalid value: {error}"
-        )  # pylint: disable=raise-missing-from
+        raise CipherValueError(f"Invalid value: {error}")  # pylint: disable=raise-missing-from
 
 
 def grant_refresh(**kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -293,9 +289,7 @@ def convert_to_epoch(date: str) -> float:
     return datetime.datetime.fromisoformat(date).timestamp()
 
 
-def create_error_response(
-    error: str, status_code: int, start_time: float, end_time: float, **kwargs: Any
-) -> Response:
+def create_error_response(error: str, status_code: int, start_time: float, end_time: float, **kwargs: Any) -> Response:
     """Creates an error response when no response comes back from request instead of raising an error.
 
     :param error: _description_
@@ -311,9 +305,7 @@ def create_error_response(
     """
     response = Response()
     response.encoding = ENCODE
-    utc_time_diff: float = (
-        datetime.datetime.utcnow().timestamp() - datetime.datetime.now().timestamp()
-    )
+    utc_time_diff: float = datetime.datetime.utcnow().timestamp() - datetime.datetime.now().timestamp()
     content: dict[str, Any] = {
         "error": error,
         "total": 0,
@@ -321,28 +313,18 @@ def create_error_response(
             "hostname": urllib.parse.urlparse(kwargs["url"]).hostname,  # type: ignore
             "method": kwargs.get("method"),
             "timeout": kwargs.get("timeout"),
-            "json": orjson.dumps(kwargs.get("json", {})).decode(
-                ENCODE
-            ),  # pylint: disable=no-member
-            "data": orjson.dumps(kwargs.get("data", {})).decode(
-                ENCODE
-            ),  # pylint: disable=no-member
+            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
+            "data": orjson.dumps(kwargs.get("data", {})).decode(ENCODE),  # pylint: disable=no-member
             "verify": bool(kwargs.get("verify")),
-            "params": orjson.dumps(kwargs.get("params", {})).decode(
-                ENCODE
-            ),  # pylint: disable=no-member
+            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE),  # pylint: disable=no-member
         },
     }
     response.status_code = status_code
     response.url = f"https://{urllib.parse.urlparse(kwargs['url']).hostname}/"  # type: ignore
-    response.elapsed = datetime.datetime.fromtimestamp(
-        end_time
-    ) - datetime.datetime.fromtimestamp(start_time)
+    response.elapsed = datetime.datetime.fromtimestamp(end_time) - datetime.datetime.fromtimestamp(start_time)
     response.headers.update(
         {
-            "Date": time.strftime(
-                "%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time + utc_time_diff)
-            ),
+            "Date": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(start_time + utc_time_diff)),
             "Content-Type": "application/json; charset=UTF-8",
             "Access-Control-Allow-Headers": "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range",
             "X-Processing-Time": f"{str(abs(response.elapsed.total_seconds()))}",
@@ -360,9 +342,7 @@ def create_error_response(
             "Link": kwargs["url"],
         }
     )
-    response._content = orjson.dumps(
-        content
-    )  # pylint: disable=no-member,protected-access
+    response._content = orjson.dumps(content)  # pylint: disable=no-member,protected-access
     return response
 
 
@@ -375,13 +355,7 @@ def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
     :rtype: dict[str,Any]
     """
     start_time: float = kwargs["start_time"]  # convert_to_epoch(kwargs['start_time'])
-    headers: Any = (
-        json.loads(
-            orjson.dumps(
-                request.headers.__dict__["_store"]  # pylint: disable=no-member
-            ).decode(ENCODE)
-        ),
-    )
+    headers: Any = (json.loads(orjson.dumps(request.headers.__dict__["_store"]).decode(ENCODE)),)  # pylint: disable=no-member
     json_response: dict[str, Any] = {
         "headers": headers,
         "response_statistics": {
@@ -391,28 +365,20 @@ def format_request(request: Response, **kwargs: Any) -> dict[Any, Any]:
             "exec_time_elapsed": request.elapsed.total_seconds(),
             "exec_time_end": return_epoch(),  # datetime.datetime.utcnow().timestamp(),
             "exec_time_start": start_time,
-            "x_processing_time": float(request.headers.get("X-Processing-Time"))
-            if request.headers.get("X-Processing-Time")
-            else None,
+            "x_processing_time": float(request.headers.get("X-Processing-Time")) if request.headers.get("X-Processing-Time") else None,
         },
         "request_parameters": {
             "hostname": urllib.parse.urlparse(request.url).hostname,
             "url": request.url,
             "method": kwargs.get("method"),
             "timeout": kwargs.get("timeout"),
-            "json": orjson.dumps(kwargs.get("json", {})).decode(
-                ENCODE
-            ),  # pylint: disable=no-member
+            "json": orjson.dumps(kwargs.get("json", {})).decode(ENCODE),  # pylint: disable=no-member
             "verify": bool(kwargs.get("verify")),
-            "params": orjson.dumps(kwargs.get("params", {})).decode(
-                ENCODE
-            ),  # pylint: disable=no-member
+            "params": orjson.dumps(kwargs.get("params", {})).decode(ENCODE),  # pylint: disable=no-member
         },
     }
     if len(kwargs.get("exec_time_elapsed_list", [])) > 1:
-        json_response["response_statistics"]["exec_time_stdev"] = statistics.stdev(
-            kwargs.get("exec_time_elapsed_list")
-        )  # type: ignore
+        json_response["response_statistics"]["exec_time_stdev"] = statistics.stdev(kwargs.get("exec_time_elapsed_list"))  # type: ignore
     return json_response
 
 

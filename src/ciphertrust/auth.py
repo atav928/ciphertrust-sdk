@@ -12,16 +12,12 @@ from easy_logger.log_format import splunk_format
 from requests import HTTPError, Response
 
 from ciphertrust import config, logging
-from ciphertrust.exceptions import (CipherAPIError, CipherAuthError,
-                                    CipherValueError)
+from ciphertrust.exceptions import CipherAPIError, CipherAuthError, CipherValueError
 from ciphertrust.models import AuthParams
 from ciphertrust.static import ENCODE
-from ciphertrust.utils import (create_error_response, default_payload,
-                               reformat_exception, return_epoch)
+from ciphertrust.utils import create_error_response, default_payload, reformat_exception, return_epoch
 
 # from urllib.parse import urlparse
-
-
 
 
 cipher_log = logging.getLogger(__name__)
@@ -48,14 +44,14 @@ class Auth:
     token_type: str
     jwt: str
     # TODO: Fix adding refresh_token_response
-    _refresh_token_response: Union[Response,None] = None
+    _refresh_token_response: Union[Response, None] = None
     refresh_expires_in: float
     refresh_token_expires_in: float
     # TODO: Add checks to refresh token lifetime timer
-    client_id: Union[str,None] = None
-    refresh_refresh_token_lifetime: Union[float,None]
+    client_id: Union[str, None] = None
+    refresh_refresh_token_lifetime: Union[float, None]
     auth_payload: dict[str, Any]
-    refresh_authparams: dict[str,Any]
+    refresh_authparams: dict[str, Any]
     auth_response: Dict[str, Any] = {}
     exec_time_elapsed: list[float] = []
     exec_time_stdev: float = 0.0
@@ -73,20 +69,16 @@ class Auth:
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         authparams: Dict[str, Any] = AuthParams(**kwargs).asdict()
         try:
-            self.refresh_refresh_token_lifetime: Union[float,None] = authparams.get('refresh_refresh_token_lifetime')
+            self.refresh_refresh_token_lifetime: Union[float, None] = authparams.get("refresh_refresh_token_lifetime")
             self.hostname: str = authparams.pop("hostname")
             self.timeout: int = authparams.pop("timeout")
-            self.verify: Union[bool,str] = authparams.pop("verify", True)
-            self.refresh_token_revoke_unused_in: Union[float,None] = authparams.get("refresh_token_revoke_unused_in")
+            self.verify: Union[bool, str] = authparams.pop("verify", True)
+            self.refresh_token_revoke_unused_in: Union[float, None] = authparams.get("refresh_token_revoke_unused_in")
             self.headers: Dict[str, Any] = authparams.pop("headers")
             # TODO: If not refresh then generate a new token
-            self._renew_refresh_token: bool = authparams.get(
-                "renew_refresh_token", False
-            )
-            self._expiration_offset: float = authparams.pop(
-                "expiration_offset", self._expiration_offset
-            )
-            
+            self._renew_refresh_token: bool = authparams.get("renew_refresh_token", False)
+            self._expiration_offset: float = authparams.pop("expiration_offset", self._expiration_offset)
+
         except KeyError as err:
             error: str = reformat_exception(err)
             raise CipherValueError(f"Invalid value: {error}")
@@ -105,19 +97,17 @@ class Auth:
         if not isinstance(value, bool):  # type: ignore
             raise CipherValueError(f"Invalid value for renew_refresh_token: {value}")
         self._renew_refresh_token = value
-    
+
     @property
     def refresh_token_response(self):
         return self._refresh_token_response
-    
+
     def _create_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         response: Dict[str, Any] = default_payload(**payload)
         return response
 
     def _jwt_decode(self, jwt_token: str) -> Dict[str, Any]:
-        jwt_decrypted: dict[str, Any] = jwt.decode(
-            jwt_token, options={"verify_signature": False}  # type: ignore
-        )
+        jwt_decrypted: dict[str, Any] = jwt.decode(jwt_token, options={"verify_signature": False})  # type: ignore
         self.expiration = jwt_decrypted["exp"]
         return jwt_decrypted
 
@@ -129,9 +119,7 @@ class Auth:
         """
         self.message = ""
         # Use auth payload if refresh token has expired.
-        data: str = orjson.dumps(self.auth_payload).decode( # pylint: disable=no-member
-            ENCODE
-        )
+        data: str = orjson.dumps(self.auth_payload).decode(ENCODE)  # pylint: disable=no-member
         start_time: float = return_epoch()
         self.exec_time_start.append(return_epoch())
         try:
@@ -201,17 +189,10 @@ class Auth:
     def gen_refresh_token(self) -> None:
         self.message: str = ""
         # TODO: Rebuild decorator to run all these checks due to bug in code.
-        if (
-            self.refresh_token_expires_in != 0
-            or datetime.datetime.now().timestamp() >= self.refresh_token_expires_in
-        ):
+        if self.refresh_token_expires_in != 0 or datetime.datetime.now().timestamp() >= self.refresh_token_expires_in:
             self.gen_token()
-        self.payload: Dict[str, Any] = self._create_payload(
-            self.refresh_authparams
-        )
-        data: str = orjson.dumps(self.payload).decode(  # pylint: disable=no-member
-            ENCODE
-        )
+        self.payload: Dict[str, Any] = self._create_payload(self.refresh_authparams)
+        data: str = orjson.dumps(self.payload).decode(ENCODE)  # pylint: disable=no-member
         self.exec_time_start.append(return_epoch())
         start_time = return_epoch()
         self._refresh_token_response = self._request(data=data)
@@ -250,7 +231,7 @@ class Auth:
                 start_time=start_time,
                 error_message=error_message,
             )
-            #self._response = response
+            # self._response = response
             return None
             # raise CipherAuthError(error)
         try:
@@ -262,7 +243,7 @@ class Auth:
         response_json["jwt_decode"] = jwt_decode
         self._update_token_info(response_json=response_json)
         self.message: str = "Generated Refresh Token"
-        #self._response = response
+        # self._response = response
 
     def _create_error_response(
         self,
@@ -313,8 +294,7 @@ class Auth:
     def _update_token_info(self, response_json: Dict[str, Any]):
         # subtract 15seconds from expiraqtion to allow for room in response.
         self.expiration: float = (
-            datetime.datetime.fromtimestamp(response_json["jwt_decode"]["exp"])
-            - datetime.timedelta(seconds=self._expiration_offset)
+            datetime.datetime.fromtimestamp(response_json["jwt_decode"]["exp"]) - datetime.timedelta(seconds=self._expiration_offset)
         ).timestamp()
         self.issued_at = response_json["jwt_decode"]["iat"]
         self.refresh_token = response_json["refresh_token"] if response_json.get("refresh_token") else self.refresh_token
@@ -333,7 +313,7 @@ class Auth:
         )
         self.client_id = response_json.get("client_id")
         # TODO: Change to dataclassifier
-        self.refresh_authparams: dict[str,Any] = AuthParams(
+        self.refresh_authparams: dict[str, Any] = AuthParams(
             grant_type="refresh_token",
             verify=self.verify,
             headers=self.headers,
